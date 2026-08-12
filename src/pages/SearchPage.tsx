@@ -12,6 +12,7 @@ export function SearchPage({
   onThemeToggle,
   onNewOperation,
   onSearch,
+  activeUser,
 }: FinancePageProps) {
   const [query, setQuery] = useState("");
   const normalized = query.trim().toLocaleLowerCase("ru-RU");
@@ -35,6 +36,7 @@ export function SearchPage({
         onThemeToggle={onThemeToggle}
         onNewOperation={onNewOperation}
         onSearch={onSearch}
+        activeUser={activeUser}
       />
       <DataNotices source={source} fx={data.meta.fx} />
 

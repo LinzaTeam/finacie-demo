@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { getDashboard, type DashboardSource } from "./api/dashboard";
+import { demoSession, getOrCreateSession, type WebSession } from "./api/session";
+import { createTransaction } from "./api/transactions";
 import { BottomNavigation, Sidebar } from "./components/Navigation";
 import { GlobalSearchDialog } from "./components/GlobalSearchDialog";
 import type { ThemeMode } from "./components/PageChrome";
@@ -20,7 +22,7 @@ import type { DashboardData } from "./types";
 type LoadState =
   | { status: "loading" }
   | { status: "error" }
-  | { status: "ready"; data: DashboardData; source: DashboardSource };
+  | { status: "ready"; data: DashboardData; source: DashboardSource; session: WebSession | null };
 
 function isEmptyDashboard(data: DashboardData): boolean {
   return (
@@ -84,8 +86,16 @@ export function App() {
   useEffect(() => {
     const controller = new AbortController();
     setState({ status: "loading" });
-    getDashboard(controller.signal)
-      .then(({ data, source }) => setState({ status: "ready", data, source }))
+    getOrCreateSession(controller.signal)
+      .then(async (session) => {
+        const { data, source } = await getDashboard(controller.signal);
+        setState({
+          status: "ready",
+          data,
+          source,
+          session: source === "demo" ? demoSession : session,
+        });
+      })
       .catch((error: unknown) => {
         if (error instanceof DOMException && error.name === "AbortError") return;
         setState({ status: "error" });
@@ -119,6 +129,7 @@ export function App() {
         amountMinor: operation.amountMinor,
         currency: current.data.availableMoney.currency,
         status: "confirmed",
+        actorName: current.session?.user.name || "Демо-профиль",
       };
       const isIncome = operation.kind === "income";
       return {
@@ -140,6 +151,39 @@ export function App() {
     });
   }, []);
 
+  const addOperation = useCallback(async (operation: ParsedOperation) => {
+    if (state.status !== "ready") return;
+    if (state.source === "demo") {
+      addDemoOperation(operation);
+      return;
+    }
+    const normalizedTitle = operation.title.toLocaleLowerCase("ru-RU");
+    const category = normalizedTitle.includes("коф")
+      ? "coffee"
+      : normalizedTitle.includes("продукт")
+        ? "groceries"
+        : normalizedTitle.includes("метро") || normalizedTitle.includes("такси")
+          ? "transport"
+          : "other";
+    const accountId = operation.accountId || state.data.accounts[0]?.id;
+    if (!accountId) throw new Error("Account is required");
+    await createTransaction({
+      op_date: new Date().toISOString().slice(0, 10),
+      kind: operation.kind === "income" ? "income" : "card_payment",
+      amount_cents: operation.amountMinor,
+      ...(operation.kind === "income"
+        ? { account_to: accountId }
+        : {
+            account_from: accountId,
+            category,
+            category_custom: category === "other" ? operation.title : undefined,
+            expense_owner: "common",
+          }),
+      note: operation.title,
+    });
+    setAttempt((value) => value + 1);
+  }, [addDemoOperation, state]);
+
   const ready = state.status === "ready" ? state : null;
   const obligationsTotal = ready?.data.obligations.reduce((sum, item) => sum + item.debtMinor, 0) ?? 0;
   const pageProps = ready ? {
@@ -149,6 +193,7 @@ export function App() {
     onThemeToggle: toggleTheme,
     onNewOperation: openQuickAdd,
     onSearch: openSearch,
+    activeUser: ready.session?.user.name || "Не выполнен вход",
   } : null;
 
   let page = null;
@@ -183,6 +228,10 @@ export function App() {
         accounts={ready?.data.accounts}
         obligationsTotal={obligationsTotal}
         currency={ready?.data.availableMoney.currency}
+        activeUser={ready?.session ? {
+          name: ready.session.user.name,
+          authMethod: ready.session.user.auth_method,
+        } : undefined}
       />
       <div className="content-shell">
         {state.status === "loading" ? <LoadingDashboard /> : null}
@@ -200,8 +249,10 @@ export function App() {
           source={ready.source}
           accounts={ready.data.accounts}
           currency={ready.data.availableMoney.currency}
+          canWrite={Boolean(ready.session?.capabilities.write)}
+          actorName={ready.session?.user.name || "Не выполнен вход"}
           onClose={closeQuickAdd}
-          onAdd={addDemoOperation}
+          onAdd={addOperation}
         />
       ) : null}
     </div>

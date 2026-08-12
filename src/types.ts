@@ -71,6 +71,8 @@ export type DashboardData = {
     amountMinor: number;
     currency: CurrencyCode;
     status: "confirmed" | "pending_review";
+    actorKey?: string;
+    actorName?: string;
   }>;
   reconciliation: {
     periodLabel: string;

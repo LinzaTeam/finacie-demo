@@ -9,6 +9,7 @@ export type ParsedOperation = {
   detail: string;
   amountMinor: number;
   kind: "income" | "expense";
+  accountId?: string;
 };
 
 export function parseOperation(
@@ -38,6 +39,7 @@ export function parseOperation(
     detail,
     amountMinor: Math.round(amount * 100),
     kind,
+    accountId: account?.id,
   };
 }
 
@@ -46,8 +48,10 @@ type QuickAddSheetProps = {
   source: DashboardSource;
   accounts: DashboardData["accounts"];
   currency: string;
+  canWrite: boolean;
+  actorName: string;
   onClose: () => void;
-  onAdd: (operation: ParsedOperation) => void;
+  onAdd: (operation: ParsedOperation) => void | Promise<void>;
 };
 
 export function QuickAddSheet({
@@ -55,10 +59,13 @@ export function QuickAddSheet({
   source,
   accounts,
   currency,
+  canWrite,
+  actorName,
   onClose,
   onAdd,
 }: QuickAddSheetProps) {
   const [value, setValue] = useState("");
+  const [submitState, setSubmitState] = useState<"idle" | "saving" | "error">("idle");
   const inputRef = useRef<HTMLInputElement>(null);
   const dialogRef = useRef<HTMLElement>(null);
   const parsed = useMemo(() => parseOperation(value, accounts), [accounts, value]);
@@ -97,11 +104,17 @@ export function QuickAddSheet({
 
   if (!open) return null;
 
-  const submit = () => {
-    if (!parsed || source !== "demo") return;
-    onAdd(parsed);
-    setValue("");
-    onClose();
+  const submit = async () => {
+    if (!parsed || !canWrite || submitState === "saving") return;
+    setSubmitState("saving");
+    try {
+      await onAdd(parsed);
+      setValue("");
+      setSubmitState("idle");
+      onClose();
+    } catch {
+      setSubmitState("error");
+    }
   };
 
   return (
@@ -126,7 +139,7 @@ export function QuickAddSheet({
               if (event.key === "Enter") {
                 event.preventDefault();
                 event.stopPropagation();
-                submit();
+                void submit();
               }
             }}
             placeholder="Например: Кофе 420 с Т-Банк"
@@ -155,13 +168,19 @@ export function QuickAddSheet({
 
         {source === "demo" ? (
           <p className="demo-write-note">Операция добавится только в текущий демо-сеанс.</p>
+        ) : canWrite ? (
+          <p className="demo-write-note">Автор записи: {actorName}. Операция сохранится в журнале после подтверждения.</p>
         ) : (
-          <p className="demo-write-note">Запись в подключённую базу пока закрыта до завершения ledger-миграции.</p>
+          <p className="demo-write-note">Для записи откройте приложение из подтверждённого Telegram-профиля.</p>
         )}
 
-        <button className="primary-button sheet-submit" type="button" disabled={!parsed || source !== "demo"} onClick={submit}>
+        {submitState === "error" ? (
+          <p className="sheet-error" role="alert">Не удалось сохранить операцию. Проверьте соединение и повторите.</p>
+        ) : null}
+
+        <button className="primary-button sheet-submit" type="button" disabled={!parsed || !canWrite || submitState === "saving"} onClick={() => void submit()}>
           <Check size={18} strokeWidth={2} aria-hidden="true" />
-          Готово
+          {submitState === "saving" ? "Сохраняю" : "Готово"}
         </button>
       </section>
     </div>

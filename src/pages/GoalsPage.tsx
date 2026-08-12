@@ -17,6 +17,7 @@ export function GoalsPage({
   onThemeToggle,
   onNewOperation,
   onSearch,
+  activeUser,
 }: FinancePageProps) {
   const goals = source === "demo" ? demoGoals : [];
   const saved = goals.reduce((sum, goal) => sum + goal.savedMinor, 0);
@@ -32,6 +33,7 @@ export function GoalsPage({
         onThemeToggle={onThemeToggle}
         onNewOperation={onNewOperation}
         onSearch={onSearch}
+        activeUser={activeUser}
       />
       <DataNotices source={source} fx={data.meta.fx} />
 

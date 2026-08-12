@@ -1,4 +1,4 @@
-import { CalendarDays, Moon, Plus, Search, Sparkles, Sun, TriangleAlert } from "lucide-react";
+import { CalendarDays, Moon, Plus, Search, Sparkles, Sun, TriangleAlert, UserRound } from "lucide-react";
 import type { ReactNode } from "react";
 import type { DashboardSource } from "../api/dashboard";
 import type { DashboardData } from "../types";
@@ -13,6 +13,7 @@ type PageHeaderProps = {
   onThemeToggle: () => void;
   onNewOperation: () => void;
   onSearch: () => void;
+  activeUser: string;
 };
 
 export function PageHeader({
@@ -23,6 +24,7 @@ export function PageHeader({
   onThemeToggle,
   onNewOperation,
   onSearch,
+  activeUser,
 }: PageHeaderProps) {
   return (
     <header className="page-header">
@@ -31,6 +33,10 @@ export function PageHeader({
         <p>{subtitle}</p>
       </div>
       <div className="header-actions">
+        <span className="active-user-chip" title={`Текущий автор: ${activeUser}`}>
+          <UserRound size={16} strokeWidth={1.8} aria-hidden="true" />
+          {activeUser}
+        </span>
         <button
           className="icon-button header-search-button"
           type="button"

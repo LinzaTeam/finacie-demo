@@ -9,6 +9,7 @@ export function ReconciliationPage({
   onThemeToggle,
   onNewOperation,
   onSearch,
+  activeUser,
 }: FinancePageProps) {
   const complete = data.reconciliation.status === "complete";
 
@@ -22,6 +23,7 @@ export function ReconciliationPage({
         onThemeToggle={onThemeToggle}
         onNewOperation={onNewOperation}
         onSearch={onSearch}
+        activeUser={activeUser}
       />
       <DataNotices source={source} fx={data.meta.fx} />
 

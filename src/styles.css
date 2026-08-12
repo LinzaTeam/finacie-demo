@@ -391,6 +391,33 @@ html[data-theme="dark"] .account-nav-active {
   gap: 9px;
 }
 
+.active-user-chip {
+  display: inline-flex;
+  min-height: 44px;
+  max-width: 170px;
+  padding: 0 12px;
+  align-items: center;
+  gap: 7px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  color: var(--text-secondary);
+  background: color-mix(in srgb, var(--surface-elevated) 88%, transparent);
+  font-size: 11px;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.active-user-chip svg {
+  flex: 0 0 auto;
+  color: var(--midnight);
+}
+
+html[data-theme="dark"] .active-user-chip svg {
+  color: var(--sky);
+}
+
 .primary-button,
 .icon-button,
 .period-control {
@@ -2025,6 +2052,13 @@ html[data-theme="dark"] .search-dialog > footer a {
   line-height: 1.55;
 }
 
+.sheet-error {
+  margin: 10px 0 0;
+  color: var(--negative);
+  font-size: 10px;
+  font-weight: 650;
+}
+
 .demo-write-note {
   margin: 28px 0 0;
   padding: 11px;
@@ -2201,7 +2235,9 @@ html[data-theme="dark"] .search-dialog > footer a {
   .page-heading-copy { min-width: 0; }
   .page-heading-copy h1 { font-size: 26px; }
   .page-heading-copy p { max-width: 28ch; margin-top: 5px; font-size: 10px; }
-  .header-actions { gap: 7px; }
+  .page-header { display: grid; grid-template-columns: minmax(0, 1fr); }
+  .header-actions { width: 100%; gap: 7px; }
+  .active-user-chip { min-width: 0; max-width: none; flex: 1 1 auto; font-size: 9px; }
   .period-control { display: none; }
   .primary-button { min-height: 44px; padding-inline: 10px; font-size: 9px; }
   .sheet-submit { font-size: 11px; }

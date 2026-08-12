@@ -49,6 +49,8 @@ type RawDashboard = {
     id: string | number;
     date: string;
     person_name: string;
+    actor_person_key?: string;
+    actor_name?: string;
     kind: string;
     category: string;
     counterparty: string | null;
@@ -204,6 +206,8 @@ export function normalizeDashboard(raw: RawDashboard): DashboardData {
       amountMinor: transaction.amount_cents,
       currency: transaction.currency,
       status: "confirmed",
+      actorKey: transaction.actor_person_key,
+      actorName: transaction.actor_name || transaction.person_name,
     })),
     reconciliation: {
       periodLabel: `${dateLabel(raw.reconciliation.period_start)} - ${dateLabel(raw.reconciliation.period_end)}`,

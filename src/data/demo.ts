@@ -133,6 +133,7 @@ export const demoDashboard: DashboardData = {
       amountMinor: 3_842_16,
       currency: "RUB",
       status: "confirmed",
+      actorName: "Участник 1",
     },
     {
       id: "tx-2",
@@ -143,6 +144,7 @@ export const demoDashboard: DashboardData = {
       amountMinor: 35_000_00,
       currency: "RUB",
       status: "confirmed",
+      actorName: "Участник 2",
     },
     {
       id: "tx-3",
@@ -153,6 +155,7 @@ export const demoDashboard: DashboardData = {
       amountMinor: 2_890_00,
       currency: "RUB",
       status: "confirmed",
+      actorName: "Участник 1",
     },
     {
       id: "tx-4",
@@ -163,6 +166,7 @@ export const demoDashboard: DashboardData = {
       amountMinor: 12_000_00,
       currency: "RUB",
       status: "confirmed",
+      actorName: "Участник 2",
     },
     {
       id: "tx-5",
@@ -173,6 +177,7 @@ export const demoDashboard: DashboardData = {
       amountMinor: 788_00,
       currency: "RUB",
       status: "pending_review",
+      actorName: "Участник 1",
     },
     {
       id: "tx-6",
@@ -183,6 +188,7 @@ export const demoDashboard: DashboardData = {
       amountMinor: 1_240_00,
       currency: "RUB",
       status: "confirmed",
+      actorName: "Участник 2",
     },
     {
       id: "tx-7",
@@ -193,6 +199,7 @@ export const demoDashboard: DashboardData = {
       amountMinor: 2_156_00,
       currency: "RUB",
       status: "confirmed",
+      actorName: "Участник 1",
     },
     {
       id: "tx-8",
@@ -203,6 +210,7 @@ export const demoDashboard: DashboardData = {
       amountMinor: 5_920_00,
       currency: "RUB",
       status: "confirmed",
+      actorName: "Участник 2",
     },
     {
       id: "tx-9",
@@ -213,6 +221,7 @@ export const demoDashboard: DashboardData = {
       amountMinor: 299_00,
       currency: "RUB",
       status: "confirmed",
+      actorName: "Участник 1",
     },
     {
       id: "tx-10",
@@ -223,6 +232,7 @@ export const demoDashboard: DashboardData = {
       amountMinor: 60_000_00,
       currency: "RUB",
       status: "confirmed",
+      actorName: "Участник 2",
     },
   ],
   reconciliation: {

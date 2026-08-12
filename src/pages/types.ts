@@ -9,4 +9,5 @@ export type FinancePageProps = {
   onThemeToggle: () => void;
   onNewOperation: () => void;
   onSearch: () => void;
+  activeUser: string;
 };

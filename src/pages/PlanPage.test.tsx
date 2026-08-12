@@ -15,6 +15,7 @@ describe("plan page", () => {
         onThemeToggle={vi.fn()}
         onNewOperation={vi.fn()}
         onSearch={vi.fn()}
+        activeUser="Демо-профиль"
       />,
     );
 
@@ -31,6 +32,7 @@ describe("plan page", () => {
         onThemeToggle={vi.fn()}
         onNewOperation={vi.fn()}
         onSearch={vi.fn()}
+        activeUser="Демо-профиль"
       />,
     );
 

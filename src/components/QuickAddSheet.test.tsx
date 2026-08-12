@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { parseOperation, QuickAddSheet } from "./QuickAddSheet";
@@ -22,6 +22,7 @@ describe("natural operation input", () => {
       detail: "Оплата, Т-Банк",
       amountMinor: 42_000,
       kind: "expense",
+      accountId: "tbank",
     });
   });
 
@@ -32,7 +33,7 @@ describe("natural operation input", () => {
     });
   });
 
-  it("submits once with Enter and closes the dialog", () => {
+  it("submits once with Enter and closes the dialog", async () => {
     const onAdd = vi.fn();
 
     function Harness() {
@@ -43,6 +44,8 @@ describe("natural operation input", () => {
           source="demo"
           accounts={accounts}
           currency="RUB"
+          canWrite
+          actorName="Демо-профиль"
           onClose={() => setOpen(false)}
           onAdd={onAdd}
         />
@@ -55,6 +58,8 @@ describe("natural operation input", () => {
     fireEvent.keyDown(input, { key: "Enter" });
 
     expect(onAdd).toHaveBeenCalledTimes(1);
-    expect(screen.queryByRole("dialog", { name: "Новая операция" })).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog", { name: "Новая операция" })).not.toBeInTheDocument();
+    });
   });
 });

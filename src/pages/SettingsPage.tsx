@@ -9,6 +9,7 @@ export function SettingsPage({
   onThemeToggle,
   onNewOperation,
   onSearch,
+  activeUser,
 }: FinancePageProps) {
   return (
     <main className="app-page" id="page-content" tabIndex={-1}>
@@ -20,6 +21,7 @@ export function SettingsPage({
         onThemeToggle={onThemeToggle}
         onNewOperation={onNewOperation}
         onSearch={onSearch}
+        activeUser={activeUser}
       />
       <DataNotices source={source} fx={data.meta.fx} />
 

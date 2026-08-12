@@ -28,6 +28,7 @@ type NavigationProps = {
   accounts?: DashboardData["accounts"];
   obligationsTotal?: number;
   currency?: string;
+  activeUser?: { name: string; authMethod?: string };
 };
 
 function NavItem({
@@ -59,6 +60,7 @@ export function Sidebar({
   accounts = [],
   obligationsTotal = 0,
   currency = "RUB",
+  activeUser,
 }: NavigationProps) {
   return (
     <aside className="sidebar">
@@ -99,10 +101,10 @@ export function Sidebar({
       </nav>
 
       <div className="sidebar-profile">
-        <span className="profile-avatar" aria-hidden="true">С</span>
+        <span className="profile-avatar" aria-hidden="true">{activeUser?.name.slice(0, 1) || "С"}</span>
         <span className="profile-copy">
-          <strong>Семейный профиль</strong>
-          <small>Общий финансовый контур</small>
+          <strong>{activeUser?.name || "Семейный профиль"}</strong>
+          <small>{activeUser?.authMethod === "telegram_webapp" ? "Вход через Telegram" : "Текущий автор записей"}</small>
         </span>
       </div>
     </aside>

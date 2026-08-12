@@ -18,6 +18,7 @@ export function AccountsPage({
   onThemeToggle,
   onNewOperation,
   onSearch,
+  activeUser,
 }: FinancePageProps) {
   const grouped = (Object.keys(groupInfo) as Array<DashboardData["accounts"][number]["group"]>)
     .map((group) => ({ group, items: data.accounts.filter((account) => account.group === group) }))
@@ -33,6 +34,7 @@ export function AccountsPage({
         onThemeToggle={onThemeToggle}
         onNewOperation={onNewOperation}
         onSearch={onSearch}
+        activeUser={activeUser}
       />
       <DataNotices source={source} fx={data.meta.fx} />
 

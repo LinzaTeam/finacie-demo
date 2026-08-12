@@ -9,7 +9,7 @@ import { formatDateTime, formatMoney, formatShortDate, formatSignedMoney } from 
 import { routeHref } from "../routes";
 import type { FinancePageProps } from "./types";
 
-export function OverviewPage({ data, source, theme, onThemeToggle, onNewOperation, onSearch }: FinancePageProps) {
+export function OverviewPage({ data, source, theme, onThemeToggle, onNewOperation, onSearch, activeUser }: FinancePageProps) {
   const baseCurrency = data.availableMoney.currency;
   const nearestPayment = [...data.obligations]
     .filter((item) => item.dueDate && item.minimumPaymentMinor)
@@ -35,6 +35,7 @@ export function OverviewPage({ data, source, theme, onThemeToggle, onNewOperatio
         onThemeToggle={onThemeToggle}
         onNewOperation={onNewOperation}
         onSearch={onSearch}
+        activeUser={activeUser}
       />
       <DataNotices source={source} fx={data.meta.fx} />
 

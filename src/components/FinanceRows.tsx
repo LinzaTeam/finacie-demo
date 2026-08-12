@@ -33,6 +33,7 @@ export function TransactionRow({
       <span className="transaction-copy">
         <strong>{transaction.title}</strong>
         <small>{transaction.detail}</small>
+        {transaction.actorName ? <small>Внёс: {transaction.actorName}</small> : null}
       </span>
       {transaction.status === "pending_review" ? (
         <span className="status-label">

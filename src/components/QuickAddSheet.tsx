@@ -211,13 +211,13 @@ export function QuickAddSheet({
               {reviewed.learnedFromHistory ? (
                 <p className="history-match"><History size={15} aria-hidden="true" /> Узнано по подтверждённой истории</p>
               ) : null}
-              <div className="review-static"><span>Сумма</span><strong>{formatMoney(reviewed.amountMinor, currency)}</strong></div>
-              <label><span>Тип</span><select aria-label="Тип операции" value={reviewed.transactionKind}
+              <div className="operation-review-row review-static"><span>Сумма</span><strong>{formatMoney(reviewed.amountMinor, currency)}</strong></div>
+              <label className="operation-review-row"><span>Тип</span><select aria-label="Тип операции" value={reviewed.transactionKind}
                 onChange={(event) => setOverrides((current) => ({ ...current, transactionKind: event.target.value as TransactionCommand["kind"] }))}>
                 <option value="card_payment">Расход</option><option value="income">Доход</option>
                 <option value="transfer_to_person">Перевод человеку</option><option value="own_transfer">Между счетами</option>
               </select></label>
-              <label><span>Контрагент или человек</span><input aria-label="Контрагент или человек"
+              <label className="operation-review-row"><span>Контрагент или человек</span><input aria-label="Контрагент или человек"
                 value={reviewed.counterpartyName || ""}
                 onChange={(event) => setOverrides((current) => ({
                   ...current,
@@ -225,23 +225,23 @@ export function QuickAddSheet({
                   counterpartyName: event.target.value,
                   learnedFromHistory: false,
                 }))} /></label>
-              <label><span>{reviewed.transactionKind === "income" ? "Счёт зачисления" : "Счёт списания"}</span>
+              <label className="operation-review-row"><span>{reviewed.transactionKind === "income" ? "Счёт зачисления" : "Счёт списания"}</span>
                 <select aria-label="Основной счёт" value={operationAccount || ""} onChange={(event) => setOverrides((current) => ({
                   ...current,
                   ...(reviewed.transactionKind === "income" ? { accountToId: event.target.value } : { accountFromId: event.target.value }),
                 }))}><option value="">Выберите счёт</option>{accounts.map((account) => <option value={account.id} key={account.id}>{account.name}</option>)}</select>
               </label>
-              {reviewed.transactionKind === "own_transfer" ? <label><span>Счёт зачисления</span><select aria-label="Счёт зачисления"
+              {reviewed.transactionKind === "own_transfer" ? <label className="operation-review-row"><span>Счёт зачисления</span><select aria-label="Счёт зачисления"
                 value={reviewed.accountToId || ""} onChange={(event) => setOverrides((current) => ({ ...current, accountToId: event.target.value }))}>
                 <option value="">Выберите счёт</option>{accounts.map((account) => <option value={account.id} key={account.id}>{account.name}</option>)}</select></label> : null}
-              {reviewed.transactionKind === "card_payment" ? <label><span>Категория</span><select aria-label="Категория"
+              {reviewed.transactionKind === "card_payment" ? <label className="operation-review-row"><span>Категория</span><select aria-label="Категория"
                 value={reviewed.categoryKey || "other"} onChange={(event) => setOverrides((current) => ({ ...current, categoryKey: event.target.value }))}>
                 {categories.map((category) => <option value={category.id} key={category.id}>{category.label}</option>)}</select></label> : null}
-              {reviewed.transactionKind === "income" ? <label><span>Источник дохода</span><select aria-label="Источник дохода"
+              {reviewed.transactionKind === "income" ? <label className="operation-review-row"><span>Источник дохода</span><select aria-label="Источник дохода"
                 value={reviewed.sourceKey || "other"} onChange={(event) => setOverrides((current) => ({ ...current, sourceKey: event.target.value }))}>
                 <option value="tape">TAPE</option><option value="aa">AA</option><option value="client">Клиент</option><option value="other">Другое</option>
               </select></label> : null}
-              <div className="recognition-reason"><span>Почему так</span><p>{reviewed.reasons?.join(". ")}</p></div>
+              <div className="operation-review-row recognition-reason"><span>Почему так</span><p>{reviewed.reasons?.join(". ")}</p></div>
               {!hasRequiredAccounts ? <p className="operation-validation">Выберите счёт перед сохранением.</p> : null}
             </div>
           ) : <p>Укажите название и сумму. Можно добавить контрагента и счёт в той же строке.</p>}

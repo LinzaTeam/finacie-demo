@@ -160,4 +160,28 @@ describe("natural operation input", () => {
     fireEvent.click(screen.getByRole("button", { name: "Готово" }));
     await waitFor(() => expect(onAdd).toHaveBeenCalledWith(expect.objectContaining({ subjectKey: "person-2" })));
   });
+
+  it("keeps every reviewed field inside the stable two-column row layout", () => {
+    render(
+      <QuickAddSheet
+        open
+        source="demo"
+        accounts={accounts}
+        categories={categories}
+        currency="RUB"
+        canWrite
+        actorName="Участник 1"
+        actorKey="person-1"
+        people={people}
+        onClose={vi.fn()}
+        onAdd={vi.fn()}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText("Напишите как есть"), { target: { value: "поступление т-банк 1000" } });
+
+    for (const label of ["Сумма", "Тип", "Контрагент или человек", "Счёт зачисления", "Источник дохода", "Почему так"]) {
+      expect(screen.getByText(label).closest(".operation-review-row")).not.toBeNull();
+    }
+  });
 });

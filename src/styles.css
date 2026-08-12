@@ -2170,10 +2170,9 @@ html[data-theme="dark"] .search-dialog > footer a {
   margin-top: 12px;
 }
 
-.operation-review-grid > label,
-.operation-review-grid > .review-static,
-.operation-review-grid > .recognition-reason {
+.operation-review-row {
   display: grid;
+  width: 100%;
   min-height: 48px;
   grid-template-columns: minmax(120px, .8fr) minmax(0, 1.2fr);
   align-items: center;
@@ -2181,15 +2180,15 @@ html[data-theme="dark"] .search-dialog > footer a {
   border-bottom: 1px solid var(--line);
 }
 
-.operation-review-grid > label > span,
-.review-static > span,
-.recognition-reason > span {
+.operation-review-row > span {
   color: var(--text-secondary);
   font-size: 10px;
 }
 
-.operation-review-grid input,
-.operation-review-grid select {
+.operation-review-row input,
+.operation-review-row select {
+  width: 100%;
+  max-width: 100%;
   min-width: 0;
   min-height: 38px;
   padding: 7px 8px;
@@ -2199,8 +2198,8 @@ html[data-theme="dark"] .search-dialog > footer a {
   font-weight: 680;
 }
 
-.operation-review-grid input:focus,
-.operation-review-grid select:focus {
+.operation-review-row input:focus,
+.operation-review-row select:focus {
   border-color: var(--sky);
 }
 
@@ -2825,9 +2824,7 @@ html[data-theme="dark"] .search-dialog > footer a {
   .category-people-row { padding: 10px 0; grid-template-columns: 36px minmax(0, 1fr) auto; }
   .category-people-row > div { grid-column: 2 / -1; }
   .counterparty-ranking-columns { grid-template-columns: 1fr; gap: 20px; }
-  .operation-review-grid > label,
-  .operation-review-grid > .review-static,
-  .operation-review-grid > .recognition-reason { grid-template-columns: minmax(100px, .8fr) minmax(0, 1.2fr); }
+  .operation-review-row { grid-template-columns: minmax(100px, .8fr) minmax(0, 1.2fr); }
   .avatar-editor { align-items: flex-start; flex-wrap: wrap; }
 }
 

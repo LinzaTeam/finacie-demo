@@ -468,8 +468,122 @@ html[data-theme="dark"] .header-search-button {
   border: 1px solid var(--line);
   color: var(--text-secondary);
   background: rgb(255 255 255 / 0.28);
+  cursor: pointer;
   font-size: 11px;
   font-weight: 650;
+}
+
+.period-picker {
+  position: relative;
+}
+
+.period-control[aria-expanded="true"] {
+  border-color: color-mix(in srgb, var(--midnight) 40%, var(--line));
+  color: var(--midnight);
+  background: var(--surface-elevated);
+}
+
+html[data-theme="dark"] .period-control[aria-expanded="true"] {
+  color: var(--ivory);
+}
+
+.period-popover {
+  position: absolute;
+  top: calc(100% + 9px);
+  right: 0;
+  z-index: 75;
+  width: 278px;
+  padding: 13px;
+  border: 1px solid var(--line-strong);
+  border-radius: 18px;
+  color: var(--text-primary);
+  background: color-mix(in srgb, var(--surface-elevated) 96%, transparent);
+  box-shadow: 0 24px 64px rgb(28 34 52 / 0.22);
+  backdrop-filter: blur(22px) saturate(140%);
+  -webkit-backdrop-filter: blur(22px) saturate(140%);
+  animation: period-popover-in 160ms var(--ease-out) both;
+}
+
+.period-popover > header {
+  display: grid;
+  margin-bottom: 10px;
+  align-items: center;
+  grid-template-columns: 34px 1fr 34px;
+}
+
+.period-popover > header strong {
+  text-align: center;
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.period-arrow {
+  display: inline-flex;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 10px;
+  color: var(--text-secondary);
+  background: transparent;
+  cursor: pointer;
+}
+
+.period-arrow:hover:not(:disabled),
+.period-month-grid button:hover:not(:disabled),
+.period-current:hover {
+  color: var(--midnight);
+  background: var(--primary-soft);
+}
+
+.period-arrow:disabled,
+.period-month-grid button:disabled {
+  cursor: not-allowed;
+  opacity: 0.3;
+}
+
+.period-month-grid {
+  display: grid;
+  gap: 5px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.period-month-grid button {
+  min-height: 38px;
+  padding: 0 5px;
+  border: 0;
+  border-radius: 10px;
+  color: var(--text-secondary);
+  background: transparent;
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 650;
+}
+
+.period-month-grid button.period-month-selected {
+  color: var(--ivory);
+  background: var(--midnight);
+}
+
+.period-current {
+  width: 100%;
+  min-height: 38px;
+  margin-top: 8px;
+  border: 0;
+  border-radius: 10px;
+  color: var(--text-secondary);
+  background: var(--surface-muted);
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+html[data-theme="dark"] .period-arrow:hover:not(:disabled),
+html[data-theme="dark"] .period-month-grid button:hover:not(:disabled),
+html[data-theme="dark"] .period-current:hover {
+  color: var(--ivory);
 }
 
 .notice-stack {
@@ -2145,6 +2259,11 @@ html[data-theme="dark"] .search-dialog > footer a {
   to { transform: translateY(0) scale(1); opacity: 1; }
 }
 
+@keyframes period-popover-in {
+  from { transform: translateY(-6px) scale(0.985); opacity: 0; }
+  to { transform: translateY(0) scale(1); opacity: 1; }
+}
+
 @media (prefers-reduced-motion: no-preference) {
   .skeleton {
     background: linear-gradient(90deg, var(--primary-soft) 25%, var(--surface-muted) 48%, var(--primary-soft) 70%);
@@ -2238,7 +2357,8 @@ html[data-theme="dark"] .search-dialog > footer a {
   .page-header { display: grid; grid-template-columns: minmax(0, 1fr); }
   .header-actions { width: 100%; gap: 7px; }
   .active-user-chip { min-width: 0; max-width: none; flex: 1 1 auto; font-size: 9px; }
-  .period-control { display: none; }
+  .period-picker { flex: 0 0 auto; }
+  .period-control { width: 44px; padding: 0; font-size: 0; }
   .primary-button { min-height: 44px; padding-inline: 10px; font-size: 9px; }
   .sheet-submit { font-size: 11px; }
   .icon-button { width: 44px; min-height: 44px; }

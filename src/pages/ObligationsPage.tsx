@@ -11,6 +11,8 @@ export function ObligationsPage({
   onNewOperation,
   onSearch,
   activeUser,
+  selectedPeriod,
+  onPeriodChange,
 }: FinancePageProps) {
   const total = data.obligations.reduce((sum, item) => sum + item.debtMinor, 0);
 
@@ -25,6 +27,8 @@ export function ObligationsPage({
         onNewOperation={onNewOperation}
         onSearch={onSearch}
         activeUser={activeUser}
+        selectedPeriod={selectedPeriod}
+        onPeriodChange={onPeriodChange}
       />
       <DataNotices source={source} fx={data.meta.fx} />
 

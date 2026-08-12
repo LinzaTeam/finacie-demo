@@ -17,7 +17,7 @@ function longDate(value: string): string {
   }).format(new Date(value));
 }
 
-export function OperationsPage({ data, source, theme, onThemeToggle, onNewOperation, onSearch, activeUser }: FinancePageProps) {
+export function OperationsPage({ data, source, theme, onThemeToggle, onNewOperation, onSearch, activeUser, selectedPeriod, onPeriodChange }: FinancePageProps) {
   const [query, setQuery] = useState("");
   const [kind, setKind] = useState<KindFilter>("all");
   const net = data.month.incomeMinor - data.month.expenseMinor;
@@ -51,6 +51,8 @@ export function OperationsPage({ data, source, theme, onThemeToggle, onNewOperat
         onNewOperation={onNewOperation}
         onSearch={onSearch}
         activeUser={activeUser}
+        selectedPeriod={selectedPeriod}
+        onPeriodChange={onPeriodChange}
       />
       <DataNotices source={source} fx={data.meta.fx} />
 

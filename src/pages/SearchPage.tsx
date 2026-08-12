@@ -13,6 +13,8 @@ export function SearchPage({
   onNewOperation,
   onSearch,
   activeUser,
+  selectedPeriod,
+  onPeriodChange,
 }: FinancePageProps) {
   const [query, setQuery] = useState("");
   const normalized = query.trim().toLocaleLowerCase("ru-RU");
@@ -37,6 +39,8 @@ export function SearchPage({
         onNewOperation={onNewOperation}
         onSearch={onSearch}
         activeUser={activeUser}
+        selectedPeriod={selectedPeriod}
+        onPeriodChange={onPeriodChange}
       />
       <DataNotices source={source} fx={data.meta.fx} />
 

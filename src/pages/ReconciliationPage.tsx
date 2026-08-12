@@ -10,6 +10,8 @@ export function ReconciliationPage({
   onNewOperation,
   onSearch,
   activeUser,
+  selectedPeriod,
+  onPeriodChange,
 }: FinancePageProps) {
   const complete = data.reconciliation.status === "complete";
 
@@ -18,12 +20,14 @@ export function ReconciliationPage({
       <PageHeader
         title="Сверка"
         subtitle="Общая проверка дней, дублей и остатков"
-        periodLabel={data.reconciliation.periodLabel}
+        periodLabel={data.meta.periodLabel}
         theme={theme}
         onThemeToggle={onThemeToggle}
         onNewOperation={onNewOperation}
         onSearch={onSearch}
         activeUser={activeUser}
+        selectedPeriod={selectedPeriod}
+        onPeriodChange={onPeriodChange}
       />
       <DataNotices source={source} fx={data.meta.fx} />
 

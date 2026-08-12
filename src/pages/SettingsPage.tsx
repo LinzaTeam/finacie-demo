@@ -10,6 +10,8 @@ export function SettingsPage({
   onNewOperation,
   onSearch,
   activeUser,
+  selectedPeriod,
+  onPeriodChange,
 }: FinancePageProps) {
   return (
     <main className="app-page" id="page-content" tabIndex={-1}>
@@ -22,6 +24,8 @@ export function SettingsPage({
         onNewOperation={onNewOperation}
         onSearch={onSearch}
         activeUser={activeUser}
+        selectedPeriod={selectedPeriod}
+        onPeriodChange={onPeriodChange}
       />
       <DataNotices source={source} fx={data.meta.fx} />
 

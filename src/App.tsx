@@ -7,6 +7,7 @@ import { GlobalSearchDialog } from "./components/GlobalSearchDialog";
 import type { ThemeMode } from "./components/PageChrome";
 import { QuickAddSheet, type ParsedOperation } from "./components/QuickAddSheet";
 import { EmptyDashboard, ErrorDashboard, LoadingDashboard } from "./components/States";
+import { currentPeriodKey, dateForPeriod } from "./lib/period";
 import { AccountsPage } from "./pages/AccountsPage";
 import { GoalsPage } from "./pages/GoalsPage";
 import { ObligationsPage } from "./pages/ObligationsPage";
@@ -45,6 +46,7 @@ export function App() {
   const [theme, setTheme] = useState<ThemeMode>(initialTheme);
   const [quickAddOpen, setQuickAddOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [selectedPeriod, setSelectedPeriod] = useState(currentPeriodKey);
 
   useEffect(() => {
     if (!window.location.hash.startsWith("#/")) {
@@ -88,7 +90,7 @@ export function App() {
     setState({ status: "loading" });
     getOrCreateSession(controller.signal)
       .then(async (session) => {
-        const { data, source } = await getDashboard(controller.signal);
+        const { data, source } = await getDashboard(selectedPeriod, controller.signal);
         setState({
           status: "ready",
           data,
@@ -101,7 +103,7 @@ export function App() {
         setState({ status: "error" });
       });
     return () => controller.abort();
-  }, [attempt]);
+  }, [attempt, selectedPeriod]);
 
   const toggleTheme = useCallback(() => {
     setTheme((current) => current === "light" ? "dark" : "light");
@@ -116,13 +118,18 @@ export function App() {
     setSearchOpen(true);
   }, []);
   const closeSearch = useCallback(() => setSearchOpen(false), []);
+  const changePeriod = useCallback((period: string) => {
+    setQuickAddOpen(false);
+    setSearchOpen(false);
+    setSelectedPeriod(period);
+  }, []);
 
   const addDemoOperation = useCallback((operation: ParsedOperation) => {
     setState((current) => {
       if (current.status !== "ready" || current.source !== "demo") return current;
       const transaction: DashboardData["transactions"][number] = {
         id: `demo-${Date.now()}`,
-        occurredAt: new Date().toISOString(),
+        occurredAt: `${dateForPeriod(selectedPeriod)}T12:00:00+03:00`,
         title: operation.title,
         detail: operation.detail,
         kind: operation.kind,
@@ -149,7 +156,7 @@ export function App() {
         },
       };
     });
-  }, []);
+  }, [selectedPeriod]);
 
   const addOperation = useCallback(async (operation: ParsedOperation) => {
     if (state.status !== "ready") return;
@@ -168,7 +175,7 @@ export function App() {
     const accountId = operation.accountId || state.data.accounts[0]?.id;
     if (!accountId) throw new Error("Account is required");
     await createTransaction({
-      op_date: new Date().toISOString().slice(0, 10),
+      op_date: dateForPeriod(selectedPeriod),
       kind: operation.kind === "income" ? "income" : "card_payment",
       amount_cents: operation.amountMinor,
       ...(operation.kind === "income"
@@ -182,7 +189,7 @@ export function App() {
       note: operation.title,
     });
     setAttempt((value) => value + 1);
-  }, [addDemoOperation, state]);
+  }, [addDemoOperation, selectedPeriod, state]);
 
   const ready = state.status === "ready" ? state : null;
   const obligationsTotal = ready?.data.obligations.reduce((sum, item) => sum + item.debtMinor, 0) ?? 0;
@@ -194,6 +201,8 @@ export function App() {
     onNewOperation: openQuickAdd,
     onSearch: openSearch,
     activeUser: ready.session?.user.name || "Не выполнен вход",
+    selectedPeriod,
+    onPeriodChange: changePeriod,
   } : null;
 
   let page = null;

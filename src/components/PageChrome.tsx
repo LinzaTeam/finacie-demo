@@ -1,7 +1,8 @@
-import { CalendarDays, Moon, Plus, Search, Sparkles, Sun, TriangleAlert, UserRound } from "lucide-react";
+import { Moon, Plus, Search, Sparkles, Sun, TriangleAlert, UserRound } from "lucide-react";
 import type { ReactNode } from "react";
 import type { DashboardSource } from "../api/dashboard";
 import type { DashboardData } from "../types";
+import { PeriodPicker } from "./PeriodPicker";
 
 export type ThemeMode = "light" | "dark";
 
@@ -14,6 +15,8 @@ type PageHeaderProps = {
   onNewOperation: () => void;
   onSearch: () => void;
   activeUser: string;
+  selectedPeriod: string;
+  onPeriodChange: (period: string) => void;
 };
 
 export function PageHeader({
@@ -25,6 +28,8 @@ export function PageHeader({
   onNewOperation,
   onSearch,
   activeUser,
+  selectedPeriod,
+  onPeriodChange,
 }: PageHeaderProps) {
   return (
     <header className="page-header">
@@ -50,10 +55,7 @@ export function PageHeader({
           <Plus size={17} strokeWidth={2} aria-hidden="true" />
           Новая операция
         </button>
-        <span className="period-control" aria-label={`Выбран период ${periodLabel}`}>
-          <CalendarDays size={17} strokeWidth={1.8} aria-hidden="true" />
-          {periodLabel}
-        </span>
+        <PeriodPicker value={selectedPeriod} label={periodLabel} onChange={onPeriodChange} />
         <button
           className="icon-button"
           type="button"

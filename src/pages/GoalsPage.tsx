@@ -18,6 +18,8 @@ export function GoalsPage({
   onNewOperation,
   onSearch,
   activeUser,
+  selectedPeriod,
+  onPeriodChange,
 }: FinancePageProps) {
   const goals = source === "demo" ? demoGoals : [];
   const saved = goals.reduce((sum, goal) => sum + goal.savedMinor, 0);
@@ -34,6 +36,8 @@ export function GoalsPage({
         onNewOperation={onNewOperation}
         onSearch={onSearch}
         activeUser={activeUser}
+        selectedPeriod={selectedPeriod}
+        onPeriodChange={onPeriodChange}
       />
       <DataNotices source={source} fx={data.meta.fx} />
 

@@ -1,4 +1,5 @@
 import { demoDashboard } from "../data/demo";
+import { periodEnd, periodLabel } from "../lib/period";
 import { isDashboardData, type DashboardData } from "../types";
 
 export type DashboardSource = "api" | "demo";
@@ -223,13 +224,65 @@ export function normalizeDashboard(raw: RawDashboard): DashboardData {
   };
 }
 
-export async function getDashboard(signal?: AbortSignal): Promise<DashboardResult> {
+function demoDashboardForPeriod(period: string): DashboardData {
+  if (demoDashboard.meta.generatedAt.slice(0, 7) === period) return demoDashboard;
+  const transactions = demoDashboard.transactions.filter(
+    (transaction) => transaction.occurredAt.slice(0, 7) === period,
+  );
+  const incomeMinor = transactions
+    .filter((transaction) => transaction.kind === "income")
+    .reduce((sum, transaction) => sum + transaction.amountMinor, 0);
+  const expenseMinor = transactions
+    .filter((transaction) => transaction.kind === "expense")
+    .reduce((sum, transaction) => sum + transaction.amountMinor, 0);
+  const end = periodEnd(period);
+  const endDate = new Date(`${end}T12:00:00+03:00`);
+  const startDate = new Date(endDate);
+  startDate.setDate(endDate.getDate() - 6);
+  const shortDate = (date: Date) => new Intl.DateTimeFormat("ru-RU", {
+    day: "numeric",
+    month: "long",
+    timeZone: "Europe/Moscow",
+  }).format(date);
+
+  return {
+    ...demoDashboard,
+    meta: {
+      ...demoDashboard.meta,
+      generatedAt: `${end}T12:00:00+03:00`,
+      periodLabel: periodLabel(period),
+    },
+    availableMoney: {
+      ...demoDashboard.availableMoney,
+      changeMinor: incomeMinor - expenseMinor,
+      changeLabel: "чистый поток за месяц",
+    },
+    month: {
+      ...demoDashboard.month,
+      incomeMinor,
+      expenseMinor,
+    },
+    cashflow: demoDashboard.cashflow.filter((point) => point.date.startsWith(period)),
+    categories: [],
+    transactions,
+    reconciliation: {
+      ...demoDashboard.reconciliation,
+      periodLabel: `${shortDate(startDate)} - ${shortDate(endDate)}`,
+      status: "complete",
+      completedParticipants: 2,
+      openIssues: 0,
+      nextAction: "За выбранный период открытых вопросов нет.",
+    },
+  };
+}
+
+export async function getDashboard(period: string, signal?: AbortSignal): Promise<DashboardResult> {
   try {
     const devUser = import.meta.env.VITE_FINANCE_DEV_USER;
     const headers: Record<string, string> = { Accept: "application/json" };
     if (devUser) headers["X-Finance-Dev-User"] = devUser;
 
-    const response = await fetch("/api/v1/dashboard", {
+    const response = await fetch(`/api/v1/dashboard?period=${encodeURIComponent(period)}`, {
       method: "GET",
       headers,
       credentials: "same-origin",
@@ -258,7 +311,7 @@ export async function getDashboard(signal?: AbortSignal): Promise<DashboardResul
   } catch (error) {
     if (signal?.aborted) throw error;
     if (import.meta.env.VITE_FINANCE_DEMO === "true") {
-      return { data: demoDashboard, source: "demo" };
+      return { data: demoDashboardForPeriod(period), source: "demo" };
     }
     throw error;
   }

@@ -16,6 +16,8 @@ describe("plan page", () => {
         onNewOperation={vi.fn()}
         onSearch={vi.fn()}
         activeUser="Демо-профиль"
+        selectedPeriod="2026-08"
+        onPeriodChange={vi.fn()}
       />,
     );
 
@@ -33,6 +35,8 @@ describe("plan page", () => {
         onNewOperation={vi.fn()}
         onSearch={vi.fn()}
         activeUser="Демо-профиль"
+        selectedPeriod="2026-08"
+        onPeriodChange={vi.fn()}
       />,
     );
 

@@ -12,6 +12,8 @@ export function PlanPage({
   onNewOperation,
   onSearch,
   activeUser,
+  selectedPeriod,
+  onPeriodChange,
 }: FinancePageProps) {
   const budget = data.plan?.budgetMinor ?? null;
   const remaining = budget == null ? null : Math.max(0, budget - data.month.expenseMinor);
@@ -30,6 +32,8 @@ export function PlanPage({
         onNewOperation={onNewOperation}
         onSearch={onSearch}
         activeUser={activeUser}
+        selectedPeriod={selectedPeriod}
+        onPeriodChange={onPeriodChange}
       />
       <DataNotices source={source} fx={data.meta.fx} />
 

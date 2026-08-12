@@ -10,4 +10,6 @@ export type FinancePageProps = {
   onNewOperation: () => void;
   onSearch: () => void;
   activeUser: string;
+  selectedPeriod: string;
+  onPeriodChange: (period: string) => void;
 };

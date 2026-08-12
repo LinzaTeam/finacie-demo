@@ -26,6 +26,48 @@ export const demoDashboard: DashboardData = {
     budgetMinor: 180_000_00,
     currency: "RUB",
   },
+  people: [
+    { key: "person-1", name: "Участник 1", avatarDataUrl: null, accentColor: "#364C84" },
+    { key: "person-2", name: "Участник 2", avatarDataUrl: null, accentColor: "#95B1EE" },
+  ],
+  goals: [
+    {
+      id: "trip",
+      ownerKey: "person-1",
+      ownerName: "Участник 1",
+      name: "Отпуск",
+      targetMinor: 140_000_00,
+      currentMinor: 84_000_00,
+      currency: "RUB",
+      targetDate: "2026-12-20",
+      iconKey: "plane",
+      color: "#95B1EE",
+    },
+    {
+      id: "laptop",
+      ownerKey: "person-2",
+      ownerName: "Участник 2",
+      name: "Новый ноутбук",
+      targetMinor: 180_000_00,
+      currentMinor: 96_500_00,
+      currency: "RUB",
+      targetDate: null,
+      iconKey: "laptop",
+      color: "#364C84",
+    },
+    {
+      id: "reserve",
+      ownerKey: "person-1",
+      ownerName: "Участник 1",
+      name: "Подушка",
+      targetMinor: 300_000_00,
+      currentMinor: 42_000_00,
+      currency: "RUB",
+      targetDate: "2027-08-12",
+      iconKey: "flag",
+      color: "#E7F1AB",
+    },
+  ],
   cashflow: [
     { date: "2026-07-14", incomeMinor: 0, expenseMinor: 12_840_00 },
     { date: "2026-07-18", incomeMinor: 45_000_00, expenseMinor: 8_215_44 },
@@ -37,12 +79,12 @@ export const demoDashboard: DashboardData = {
     { date: "2026-08-12", incomeMinor: 0, expenseMinor: 16_141_92 },
   ],
   categories: [
-    { id: "food", label: "Продукты", amountMinor: 31_285_42, currency: "RUB", share: 0.243 },
-    { id: "home", label: "Дом и быт", amountMinor: 24_730_00, currency: "RUB", share: 0.192 },
-    { id: "transport", label: "Транспорт", amountMinor: 18_460_20, currency: "RUB", share: 0.143 },
-    { id: "services", label: "Сервисы", amountMinor: 16_992_00, currency: "RUB", share: 0.132 },
-    { id: "health", label: "Здоровье", amountMinor: 12_848_00, currency: "RUB", share: 0.1 },
-    { id: "other", label: "Другое", amountMinor: 24_419_00, currency: "RUB", share: 0.19 },
+    { id: "food", label: "Продукты", iconKey: "shopping-basket", color: "#9ED89E", amountMinor: 31_285_42, currency: "RUB", share: 0.243 },
+    { id: "home", label: "Дом и быт", iconKey: "house", color: "#E7C06D", amountMinor: 24_730_00, currency: "RUB", share: 0.192 },
+    { id: "transport", label: "Транспорт", iconKey: "tram-front", color: "#95B1EE", amountMinor: 18_460_20, currency: "RUB", share: 0.143 },
+    { id: "services", label: "Сервисы", iconKey: "server", color: "#364C84", amountMinor: 16_992_00, currency: "RUB", share: 0.132 },
+    { id: "health", label: "Здоровье", iconKey: "heart-pulse", color: "#D99A9A", amountMinor: 12_848_00, currency: "RUB", share: 0.1 },
+    { id: "other", label: "Другое", iconKey: "shapes", color: "#D0D9F5", amountMinor: 24_419_00, currency: "RUB", share: 0.19 },
   ],
   accounts: [
     {
@@ -53,6 +95,7 @@ export const demoDashboard: DashboardData = {
       currency: "RUB",
       convertedBalanceMinor: 64_500_00,
       updatedAt: "2026-08-12T10:35:00+03:00",
+      ownerKey: "person-1", ownerName: "Участник 1", iconKey: "landmark", color: "#95B1EE", avatarDataUrl: null,
     },
     {
       id: "alfa",
@@ -62,6 +105,7 @@ export const demoDashboard: DashboardData = {
       currency: "RUB",
       convertedBalanceMinor: 42_800_00,
       updatedAt: "2026-08-12T10:31:00+03:00",
+      ownerKey: "person-2", ownerName: "Участник 2", iconKey: "landmark", color: "#364C84", avatarDataUrl: null,
     },
     {
       id: "sber",
@@ -71,6 +115,7 @@ export const demoDashboard: DashboardData = {
       currency: "RUB",
       convertedBalanceMinor: 41_420_00,
       updatedAt: "2026-08-12T10:28:00+03:00",
+      ownerKey: "person-1", ownerName: "Участник 1", iconKey: "credit-card", color: "#D0D9F5", avatarDataUrl: null,
     },
     {
       id: "alfa_savings",
@@ -80,6 +125,7 @@ export const demoDashboard: DashboardData = {
       currency: "RUB",
       convertedBalanceMinor: 25_000_00,
       updatedAt: "2026-08-11T21:14:00+03:00",
+      ownerKey: "person-2", ownerName: "Участник 2", iconKey: "piggy-bank", color: "#E7F1AB", avatarDataUrl: null,
     },
     {
       id: "cash_usd",
@@ -89,6 +135,7 @@ export const demoDashboard: DashboardData = {
       currency: "USD",
       convertedBalanceMinor: null,
       updatedAt: "2026-08-01T18:00:00+03:00",
+      ownerKey: "person-1", ownerName: "Участник 1", iconKey: "banknote", color: "#95B1EE", avatarDataUrl: null,
     },
   ],
   obligations: [
@@ -134,6 +181,7 @@ export const demoDashboard: DashboardData = {
       currency: "RUB",
       status: "confirmed",
       actorName: "Участник 1",
+      subjectKey: "person-1", subjectName: "Участник 1", categoryKey: "food",
     },
     {
       id: "tx-2",
@@ -145,6 +193,7 @@ export const demoDashboard: DashboardData = {
       currency: "RUB",
       status: "confirmed",
       actorName: "Участник 2",
+      subjectKey: "person-2", subjectName: "Участник 2",
     },
     {
       id: "tx-3",
@@ -156,6 +205,7 @@ export const demoDashboard: DashboardData = {
       currency: "RUB",
       status: "confirmed",
       actorName: "Участник 1",
+      subjectKey: "person-1", subjectName: "Участник 1", categoryKey: "services",
     },
     {
       id: "tx-4",
@@ -167,6 +217,7 @@ export const demoDashboard: DashboardData = {
       currency: "RUB",
       status: "confirmed",
       actorName: "Участник 2",
+      subjectKey: "person-2", subjectName: "Участник 2",
     },
     {
       id: "tx-5",
@@ -178,6 +229,7 @@ export const demoDashboard: DashboardData = {
       currency: "RUB",
       status: "pending_review",
       actorName: "Участник 1",
+      subjectKey: "person-1", subjectName: "Участник 1", categoryKey: "coffee",
     },
     {
       id: "tx-6",
@@ -189,6 +241,7 @@ export const demoDashboard: DashboardData = {
       currency: "RUB",
       status: "confirmed",
       actorName: "Участник 2",
+      subjectKey: "person-2", subjectName: "Участник 2", categoryKey: "transport",
     },
     {
       id: "tx-7",
@@ -200,6 +253,7 @@ export const demoDashboard: DashboardData = {
       currency: "RUB",
       status: "confirmed",
       actorName: "Участник 1",
+      subjectKey: "person-1", subjectName: "Участник 1", categoryKey: "health",
     },
     {
       id: "tx-8",
@@ -211,6 +265,7 @@ export const demoDashboard: DashboardData = {
       currency: "RUB",
       status: "confirmed",
       actorName: "Участник 2",
+      subjectKey: "person-2", subjectName: "Участник 2", categoryKey: "home",
     },
     {
       id: "tx-9",
@@ -222,6 +277,7 @@ export const demoDashboard: DashboardData = {
       currency: "RUB",
       status: "confirmed",
       actorName: "Участник 1",
+      subjectKey: "person-1", subjectName: "Участник 1", categoryKey: "services",
     },
     {
       id: "tx-10",
@@ -233,6 +289,7 @@ export const demoDashboard: DashboardData = {
       currency: "RUB",
       status: "confirmed",
       actorName: "Участник 2",
+      subjectKey: "person-2", subjectName: "Участник 2",
     },
   ],
   reconciliation: {

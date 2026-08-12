@@ -4,6 +4,7 @@ export type TransactionCommand = {
   op_date: string;
   kind: "card_payment" | "income";
   amount_cents: number;
+  person_key?: string;
   account_from?: string;
   account_to?: string;
   category?: string;

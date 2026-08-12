@@ -1,5 +1,6 @@
 import {
   ArrowLeftRight,
+  BarChart3,
   CircleGauge,
   ClipboardCheck,
   Flag,
@@ -16,6 +17,7 @@ import type { DashboardData } from "../types";
 const primaryItems = [
   { key: "overview", label: "Сегодня", icon: LayoutDashboard },
   { key: "operations", label: "Операции", icon: ArrowLeftRight },
+  { key: "analytics", label: "Аналитика", icon: BarChart3 },
   { key: "plan", label: "План", icon: CircleGauge },
   { key: "goals", label: "Цели", icon: Flag },
   { key: "search", label: "Поиск", icon: Search },
@@ -28,7 +30,7 @@ type NavigationProps = {
   accounts?: DashboardData["accounts"];
   obligationsTotal?: number;
   currency?: string;
-  activeUser?: { name: string; authMethod?: string };
+  activeUser?: { name: string; authMethod?: string; avatarDataUrl?: string | null; accentColor?: string };
 };
 
 function NavItem({
@@ -101,7 +103,9 @@ export function Sidebar({
       </nav>
 
       <div className="sidebar-profile">
-        <span className="profile-avatar" aria-hidden="true">{activeUser?.name.slice(0, 1) || "С"}</span>
+        <span className="profile-avatar" style={{ background: activeUser?.accentColor }} aria-hidden="true">
+          {activeUser?.avatarDataUrl ? <img src={activeUser.avatarDataUrl} alt="" /> : activeUser?.name.slice(0, 1) || "С"}
+        </span>
         <span className="profile-copy">
           <strong>{activeUser?.name || "Семейный профиль"}</strong>
           <small>{activeUser?.authMethod === "telegram_webapp" ? "Вход через Telegram" : "Текущий автор записей"}</small>

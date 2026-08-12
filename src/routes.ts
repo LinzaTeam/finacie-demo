@@ -1,6 +1,7 @@
 export const routeDefinitions = [
   { key: "overview", label: "Сегодня", title: "Сегодня" },
   { key: "operations", label: "Операции", title: "Операции" },
+  { key: "analytics", label: "Аналитика", title: "Аналитика" },
   { key: "plan", label: "План", title: "План" },
   { key: "goals", label: "Цели", title: "Цели" },
   { key: "search", label: "Поиск", title: "Поиск" },

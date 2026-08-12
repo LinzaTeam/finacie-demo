@@ -12,4 +12,8 @@ export type FinancePageProps = {
   activeUser: string;
   selectedPeriod: string;
   onPeriodChange: (period: string) => void;
+  activeUserKey?: string;
+  canWrite?: boolean;
+  onDataChange?: (data: DashboardData) => void;
+  onRefresh?: () => void;
 };

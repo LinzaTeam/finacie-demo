@@ -10,6 +10,7 @@ export type ParsedOperation = {
   amountMinor: number;
   kind: "income" | "expense";
   accountId?: string;
+  subjectKey?: string;
 };
 
 export function parseOperation(
@@ -50,6 +51,8 @@ type QuickAddSheetProps = {
   currency: string;
   canWrite: boolean;
   actorName: string;
+  actorKey: string;
+  people: DashboardData["people"];
   onClose: () => void;
   onAdd: (operation: ParsedOperation) => void | Promise<void>;
 };
@@ -61,17 +64,21 @@ export function QuickAddSheet({
   currency,
   canWrite,
   actorName,
+  actorKey,
+  people,
   onClose,
   onAdd,
 }: QuickAddSheetProps) {
   const [value, setValue] = useState("");
   const [submitState, setSubmitState] = useState<"idle" | "saving" | "error">("idle");
+  const [subjectKey, setSubjectKey] = useState(actorKey);
   const inputRef = useRef<HTMLInputElement>(null);
   const dialogRef = useRef<HTMLElement>(null);
   const parsed = useMemo(() => parseOperation(value, accounts), [accounts, value]);
 
   useEffect(() => {
     if (!open) return;
+    setSubjectKey(actorKey);
     const previousOverflow = document.body.style.overflow;
     const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     document.body.style.overflow = "hidden";
@@ -100,7 +107,7 @@ export function QuickAddSheet({
       document.body.style.overflow = previousOverflow;
       previousFocus?.focus();
     };
-  }, [onClose, open]);
+  }, [actorKey, onClose, open]);
 
   if (!open) return null;
 
@@ -108,7 +115,7 @@ export function QuickAddSheet({
     if (!parsed || !canWrite || submitState === "saving") return;
     setSubmitState("saving");
     try {
-      await onAdd(parsed);
+      await onAdd({ ...parsed, subjectKey });
       setValue("");
       setSubmitState("idle");
       onClose();
@@ -152,6 +159,27 @@ export function QuickAddSheet({
           ))}
         </div>
 
+        <fieldset className="subject-picker">
+          <legend>Операция за</legend>
+          <div className="segmented-control">
+            {people.map((person) => (
+              <button
+                className={subjectKey === person.key ? "segment-active" : ""}
+                type="button"
+                aria-pressed={subjectKey === person.key}
+                onClick={() => setSubjectKey(person.key)}
+                key={person.key}
+              >
+                <span className="mini-avatar" style={{ background: person.accentColor }} aria-hidden="true">
+                  {person.avatarDataUrl ? <img src={person.avatarDataUrl} alt="" /> : person.name.slice(0, 1)}
+                </span>
+                {person.name}
+              </button>
+            ))}
+          </div>
+          <small>{actorName} останется автором записи в журнале.</small>
+        </fieldset>
+
         <div className="operation-preview">
           <span>Проверьте</span>
           {parsed ? (
@@ -160,6 +188,7 @@ export function QuickAddSheet({
               <div><dt>Тип</dt><dd>{parsed.kind === "income" ? "Доход" : "Расход"}</dd></div>
               <div><dt>Название</dt><dd>{parsed.title}</dd></div>
               <div><dt>Детали</dt><dd>{parsed.detail}</dd></div>
+              <div><dt>За кого</dt><dd>{people.find((person) => person.key === subjectKey)?.name || actorName}</dd></div>
             </dl>
           ) : (
             <p>Укажите название и сумму. Счёт можно добавить в той же строке.</p>

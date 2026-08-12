@@ -4,6 +4,8 @@ export type WebSession = {
     name: string;
     telegram_id?: number;
     auth_method?: string;
+    avatar_data_url?: string | null;
+    accent_color?: string;
   };
   capabilities: {
     read: boolean;
@@ -81,7 +83,7 @@ export function currentCsrfToken(): string | null {
 }
 
 export const demoSession: WebSession = {
-  user: { key: "demo", name: "Демо-профиль" },
+  user: { key: "person-1", name: "Участник 1", accent_color: "#364C84" },
   capabilities: { read: true, write: true, demo: true },
   csrfToken: null,
 };

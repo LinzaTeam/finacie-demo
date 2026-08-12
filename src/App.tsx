@@ -9,6 +9,7 @@ import { QuickAddSheet, type ParsedOperation } from "./components/QuickAddSheet"
 import { EmptyDashboard, ErrorDashboard, LoadingDashboard } from "./components/States";
 import { currentPeriodKey, dateForPeriod } from "./lib/period";
 import { AccountsPage } from "./pages/AccountsPage";
+import { AnalyticsPage } from "./pages/AnalyticsPage";
 import { GoalsPage } from "./pages/GoalsPage";
 import { ObligationsPage } from "./pages/ObligationsPage";
 import { OperationsPage } from "./pages/OperationsPage";
@@ -136,7 +137,14 @@ export function App() {
         amountMinor: operation.amountMinor,
         currency: current.data.availableMoney.currency,
         status: "confirmed",
-        actorName: current.session?.user.name || "Демо-профиль",
+        actorName: current.data.people.find((person) => person.key === current.session?.user.key)?.name
+          || current.session?.user.name
+          || "Демо-профиль",
+        actorKey: current.session?.user.key,
+        subjectKey: operation.subjectKey || current.session?.user.key,
+        subjectName: current.data.people.find((person) => person.key === operation.subjectKey)?.name
+          || current.session?.user.name
+          || "Участник",
       };
       const isIncome = operation.kind === "income";
       return {
@@ -178,6 +186,7 @@ export function App() {
       op_date: dateForPeriod(selectedPeriod),
       kind: operation.kind === "income" ? "income" : "card_payment",
       amount_cents: operation.amountMinor,
+      person_key: operation.subjectKey,
       ...(operation.kind === "income"
         ? { account_to: accountId }
         : {
@@ -192,6 +201,7 @@ export function App() {
   }, [addDemoOperation, selectedPeriod, state]);
 
   const ready = state.status === "ready" ? state : null;
+  const activePerson = ready?.data.people.find((person) => person.key === ready.session?.user.key);
   const obligationsTotal = ready?.data.obligations.reduce((sum, item) => sum + item.debtMinor, 0) ?? 0;
   const pageProps = ready ? {
     data: ready.data,
@@ -200,15 +210,22 @@ export function App() {
     onThemeToggle: toggleTheme,
     onNewOperation: openQuickAdd,
     onSearch: openSearch,
-    activeUser: ready.session?.user.name || "Не выполнен вход",
+    activeUser: activePerson?.name || ready.session?.user.name || "Не выполнен вход",
     selectedPeriod,
     onPeriodChange: changePeriod,
+    activeUserKey: ready.session?.user.key,
+    canWrite: Boolean(ready.session?.capabilities.write),
+    onDataChange: (data: DashboardData) => setState((current) => (
+      current.status === "ready" ? { ...current, data } : current
+    )),
+    onRefresh: () => setAttempt((value) => value + 1),
   } : null;
 
   let page = null;
   if (pageProps) {
     switch (route) {
       case "operations": page = <OperationsPage {...pageProps} />; break;
+      case "analytics": page = <AnalyticsPage {...pageProps} />; break;
       case "plan": page = <PlanPage {...pageProps} />; break;
       case "goals": page = <GoalsPage {...pageProps} />; break;
       case "search": page = <SearchPage {...pageProps} />; break;
@@ -238,8 +255,10 @@ export function App() {
         obligationsTotal={obligationsTotal}
         currency={ready?.data.availableMoney.currency}
         activeUser={ready?.session ? {
-          name: ready.session.user.name,
+          name: activePerson?.name || ready.session.user.name,
           authMethod: ready.session.user.auth_method,
+          avatarDataUrl: activePerson?.avatarDataUrl || ready.session.user.avatar_data_url,
+          accentColor: activePerson?.accentColor || ready.session.user.accent_color,
         } : undefined}
       />
       <div className="content-shell">
@@ -259,7 +278,9 @@ export function App() {
           accounts={ready.data.accounts}
           currency={ready.data.availableMoney.currency}
           canWrite={Boolean(ready.session?.capabilities.write)}
-          actorName={ready.session?.user.name || "Не выполнен вход"}
+          actorName={activePerson?.name || ready.session?.user.name || "Не выполнен вход"}
+          actorKey={ready.session?.user.key || ready.data.people[0]?.key || ""}
+          people={ready.data.people}
           onClose={closeQuickAdd}
           onAdd={addOperation}
         />

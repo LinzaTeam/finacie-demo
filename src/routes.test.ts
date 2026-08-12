@@ -4,6 +4,7 @@ import { routeFromHash, routeHref, routeTitle } from "./routes";
 describe("app routes", () => {
   it("maps every product section to a standalone hash route", () => {
     expect(routeFromHash("#/operations")).toBe("operations");
+    expect(routeFromHash("#/analytics")).toBe("analytics");
     expect(routeFromHash("#/accounts")).toBe("accounts");
     expect(routeFromHash("#/obligations")).toBe("obligations");
     expect(routeFromHash("#/plan")).toBe("plan");

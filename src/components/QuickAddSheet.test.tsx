@@ -12,7 +12,16 @@ const accounts = [
     currency: "RUB",
     convertedBalanceMinor: 1_000_00,
     updatedAt: "2026-08-12T12:00:00+03:00",
+    ownerKey: "person-1",
+    ownerName: "Участник 1",
+    iconKey: "landmark",
+    color: "#95B1EE",
+    avatarDataUrl: null,
   },
+];
+const people = [
+  { key: "person-1", name: "Участник 1", avatarDataUrl: null, accentColor: "#364C84" },
+  { key: "person-2", name: "Участник 2", avatarDataUrl: null, accentColor: "#95B1EE" },
 ];
 
 describe("natural operation input", () => {
@@ -46,6 +55,8 @@ describe("natural operation input", () => {
           currency="RUB"
           canWrite
           actorName="Демо-профиль"
+          actorKey="person-1"
+          people={people}
           onClose={() => setOpen(false)}
           onAdd={onAdd}
         />
@@ -61,5 +72,27 @@ describe("natural operation input", () => {
     await waitFor(() => {
       expect(screen.queryByRole("dialog", { name: "Новая операция" })).not.toBeInTheDocument();
     });
+  });
+
+  it("keeps the author and operation subject separate", async () => {
+    const onAdd = vi.fn();
+    render(
+      <QuickAddSheet
+        open
+        source="demo"
+        accounts={accounts}
+        currency="RUB"
+        canWrite
+        actorName="Участник 1"
+        actorKey="person-1"
+        people={people}
+        onClose={vi.fn()}
+        onAdd={onAdd}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: /Участник 2/ }));
+    fireEvent.change(screen.getByLabelText("Напишите как есть"), { target: { value: "Кофе 420" } });
+    fireEvent.click(screen.getByRole("button", { name: "Готово" }));
+    await waitFor(() => expect(onAdd).toHaveBeenCalledWith(expect.objectContaining({ subjectKey: "person-2" })));
   });
 });

@@ -1,0 +1,63 @@
+import {
+  ArrowLeftRight,
+  Banknote,
+  BriefcaseBusiness,
+  Car,
+  Coffee,
+  CreditCard,
+  Flag,
+  Gamepad2,
+  Gift,
+  HeartPulse,
+  House,
+  Landmark,
+  Laptop,
+  PiggyBank,
+  Plane,
+  Receipt,
+  Repeat2,
+  Server,
+  Shapes,
+  Shirt,
+  ShoppingBasket,
+  Sparkles,
+  TramFront,
+  Utensils,
+  Wallet,
+  type LucideProps,
+} from "lucide-react";
+
+const icons = {
+  "arrow-left-right": ArrowLeftRight,
+  banknote: Banknote,
+  "briefcase-business": BriefcaseBusiness,
+  car: Car,
+  coffee: Coffee,
+  "credit-card": CreditCard,
+  flag: Flag,
+  "gamepad-2": Gamepad2,
+  gift: Gift,
+  "heart-pulse": HeartPulse,
+  house: House,
+  landmark: Landmark,
+  laptop: Laptop,
+  "piggy-bank": PiggyBank,
+  plane: Plane,
+  receipt: Receipt,
+  "repeat-2": Repeat2,
+  server: Server,
+  shapes: Shapes,
+  shirt: Shirt,
+  "shopping-basket": ShoppingBasket,
+  sparkles: Sparkles,
+  "tram-front": TramFront,
+  utensils: Utensils,
+  wallet: Wallet,
+} as const;
+
+export const iconPalette = Object.keys(icons);
+
+export function IconGlyph({ name, ...props }: { name: string } & LucideProps) {
+  const Icon = icons[name as keyof typeof icons] ?? Receipt;
+  return <Icon {...props} />;
+}

@@ -24,7 +24,13 @@ type RawDashboard = {
     partial: boolean;
   };
   cashflow_partial?: boolean;
-  categories: Array<{ name: string; amount_cents: number }>;
+  categories: Array<{
+    key?: string;
+    name: string;
+    icon_key?: string;
+    color?: string;
+    amount_cents: number;
+  }>;
   cashflow: Array<{ date: string; income_cents: number; expense_cents: number }>;
   accounts: Array<{
     key: string;
@@ -36,6 +42,11 @@ type RawDashboard = {
     rub_cents: number | null;
     rate_missing: boolean;
     updated_at: string | null;
+    owner_key?: string;
+    owner_name?: string;
+    icon_key?: string;
+    color?: string;
+    avatar_data_url?: string | null;
   }>;
   obligations: Array<{
     key: string;
@@ -50,6 +61,7 @@ type RawDashboard = {
     id: string | number;
     date: string;
     person_name: string;
+    person_key?: string;
     actor_person_key?: string;
     actor_name?: string;
     kind: string;
@@ -60,6 +72,25 @@ type RawDashboard = {
     account_to: string | null;
     amount_cents: number;
     currency: string;
+    category_key?: string;
+  }>;
+  people?: Array<{
+    key: string;
+    name: string;
+    avatar_data_url: string | null;
+    accent_color: string;
+  }>;
+  goals?: Array<{
+    goal_id: string;
+    owner_person_key: string;
+    owner_name: string;
+    name: string;
+    target_cents: number;
+    current_cents: number;
+    currency: string;
+    target_date: string | null;
+    icon_key: string;
+    color: string;
   }>;
   reconciliation: {
     period_start: string;
@@ -168,8 +199,10 @@ export function normalizeDashboard(raw: RawDashboard): DashboardData {
       expenseMinor: point.expense_cents,
     })),
     categories: raw.categories.map((category, index) => ({
-      id: `${category.name}-${index}`,
+      id: category.key || `${category.name}-${index}`,
       label: category.name,
+      iconKey: category.icon_key || "receipt",
+      color: category.color || "#95B1EE",
       amountMinor: category.amount_cents,
       currency: raw.currency,
       share: categoryTotal > 0 ? category.amount_cents / categoryTotal : 0,
@@ -187,6 +220,11 @@ export function normalizeDashboard(raw: RawDashboard): DashboardData {
         currency: account.currency,
         convertedBalanceMinor: account.rub_cents,
         updatedAt: account.updated_at || `${raw.as_of}T12:00:00+03:00`,
+        ownerKey: account.owner_key || "common",
+        ownerName: account.owner_name || "Общий профиль",
+        iconKey: account.icon_key || "wallet",
+        color: account.color || "#95B1EE",
+        avatarDataUrl: account.avatar_data_url || null,
       })),
     obligations: raw.obligations.map((obligation) => ({
       id: obligation.key,
@@ -209,6 +247,27 @@ export function normalizeDashboard(raw: RawDashboard): DashboardData {
       status: "confirmed",
       actorKey: transaction.actor_person_key,
       actorName: transaction.actor_name || transaction.person_name,
+      subjectKey: transaction.person_key,
+      subjectName: transaction.person_name,
+      categoryKey: transaction.category_key,
+    })),
+    people: (raw.people ?? []).map((person) => ({
+      key: person.key,
+      name: person.name,
+      avatarDataUrl: person.avatar_data_url,
+      accentColor: person.accent_color,
+    })),
+    goals: (raw.goals ?? []).map((goal) => ({
+      id: goal.goal_id,
+      ownerKey: goal.owner_person_key,
+      ownerName: goal.owner_name,
+      name: goal.name,
+      targetMinor: goal.target_cents,
+      currentMinor: goal.current_cents,
+      currency: goal.currency,
+      targetDate: goal.target_date,
+      iconKey: goal.icon_key,
+      color: goal.color,
     })),
     reconciliation: {
       periodLabel: `${dateLabel(raw.reconciliation.period_start)} - ${dateLabel(raw.reconciliation.period_end)}`,

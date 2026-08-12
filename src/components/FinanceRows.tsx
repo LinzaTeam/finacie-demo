@@ -33,7 +33,13 @@ export function TransactionRow({
       <span className="transaction-copy">
         <strong>{transaction.title}</strong>
         <small>{transaction.detail}</small>
-        {transaction.actorName ? <small>Внёс: {transaction.actorName}</small> : null}
+        {transaction.actorName ? (
+          <small>
+            {transaction.subjectName && transaction.subjectName !== transaction.actorName
+              ? `За ${transaction.subjectName} · внёс ${transaction.actorName}`
+              : `Внёс: ${transaction.actorName}`}
+          </small>
+        ) : null}
       </span>
       {transaction.status === "pending_review" ? (
         <span className="status-label">

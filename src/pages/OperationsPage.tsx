@@ -20,17 +20,19 @@ function longDate(value: string): string {
 export function OperationsPage({ data, source, theme, onThemeToggle, onNewOperation, onSearch, activeUser, selectedPeriod, onPeriodChange }: FinancePageProps) {
   const [query, setQuery] = useState("");
   const [kind, setKind] = useState<KindFilter>("all");
+  const [person, setPerson] = useState("all");
   const net = data.month.incomeMinor - data.month.expenseMinor;
   const filtered = useMemo(() => {
     const normalized = query.trim().toLocaleLowerCase("ru-RU");
     return data.transactions.filter((transaction) => {
       const matchesKind = kind === "all" || transaction.kind === kind;
+      const matchesPerson = person === "all" || transaction.subjectKey === person;
       const matchesQuery =
         !normalized ||
         `${transaction.title} ${transaction.detail}`.toLocaleLowerCase("ru-RU").includes(normalized);
-      return matchesKind && matchesQuery;
+      return matchesKind && matchesPerson && matchesQuery;
     });
-  }, [data.transactions, kind, query]);
+  }, [data.transactions, kind, person, query]);
   const groups = useMemo(() => {
     const result = new Map<string, DashboardData["transactions"]>();
     filtered.forEach((transaction) => {
@@ -91,6 +93,13 @@ export function OperationsPage({ data, source, theme, onThemeToggle, onNewOperat
             </button>
           ))}
         </div>
+        <label className="person-filter">
+          <span>За кого</span>
+          <select value={person} onChange={(event) => setPerson(event.target.value)}>
+            <option value="all">Все участники</option>
+            {data.people.map((item) => <option value={item.key} key={item.key}>{item.name}</option>)}
+          </select>
+        </label>
       </section>
 
       <section className="operations-feed" aria-live="polite">

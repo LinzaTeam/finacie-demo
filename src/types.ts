@@ -39,6 +39,8 @@ export type DashboardData = {
   categories: Array<{
     id: string;
     label: string;
+    iconKey: string;
+    color: string;
     amountMinor: number;
     currency: CurrencyCode;
     share: number;
@@ -51,6 +53,11 @@ export type DashboardData = {
     currency: CurrencyCode;
     convertedBalanceMinor: number | null;
     updatedAt: string;
+    ownerKey: string;
+    ownerName: string;
+    iconKey: string;
+    color: string;
+    avatarDataUrl: string | null;
   }>;
   obligations: Array<{
     id: string;
@@ -73,6 +80,27 @@ export type DashboardData = {
     status: "confirmed" | "pending_review";
     actorKey?: string;
     actorName?: string;
+    subjectKey?: string;
+    subjectName?: string;
+    categoryKey?: string;
+  }>;
+  people: Array<{
+    key: string;
+    name: string;
+    avatarDataUrl: string | null;
+    accentColor: string;
+  }>;
+  goals: Array<{
+    id: string;
+    ownerKey: string;
+    ownerName: string;
+    name: string;
+    targetMinor: number;
+    currentMinor: number;
+    currency: CurrencyCode;
+    targetDate: string | null;
+    iconKey: string;
+    color: string;
   }>;
   reconciliation: {
     periodLabel: string;
@@ -96,6 +124,34 @@ export function isDashboardData(value: unknown): value is DashboardData {
       Array.isArray(data.categories) &&
       Array.isArray(data.accounts) &&
       Array.isArray(data.obligations) &&
-      Array.isArray(data.transactions),
+      Array.isArray(data.transactions) &&
+      Array.isArray(data.people) &&
+      Array.isArray(data.goals),
   );
 }
+
+export type AnalyticsData = {
+  periodStart: string;
+  periodEnd: string;
+  scope: "month" | "year";
+  currency: CurrencyCode;
+  partial: boolean;
+  totals: { incomeMinor: number; expenseMinor: number; netMinor: number };
+  people: Array<{
+    key: string;
+    name: string;
+    avatarDataUrl: string | null;
+    accentColor: string;
+    incomeMinor: number;
+    expenseMinor: number;
+  }>;
+  series: Array<{ bucket: string; incomeMinor: number; expenseMinor: number }>;
+  categories: Array<{
+    key: string;
+    name: string;
+    iconKey: string;
+    color: string;
+    amountMinor: number;
+    people: Array<{ key: string; name: string; amountMinor: number }>;
+  }>;
+};

@@ -74,6 +74,37 @@ describe("natural operation input", () => {
     });
   });
 
+  it("understands typos, synonyms, and reordered words", () => {
+    expect(parseOperation("140000 на:Алфа от кампании TAPE постпуление", accounts)).toMatchObject({
+      amountMinor: 14_000_000,
+      transactionKind: "income",
+      accountToId: "alfa",
+      sourceKey: "tape",
+      counterpartyName: "TAPE",
+      counterpartyType: "company",
+      confidence: 0.84,
+    });
+  });
+
+  it("accepts tags and explicit keys in any order", () => {
+    expect(parseOperation("category:coffee from:tbank 420 #expense", accounts)).toMatchObject({
+      transactionKind: "card_payment",
+      accountFromId: "tbank",
+      categoryKey: "coffee",
+    });
+    expect(parseOperation("to:alfa 10000 from:tbank #transfer", accounts)).toMatchObject({
+      transactionKind: "own_transfer",
+      accountFromId: "tbank",
+      accountToId: "alfa",
+    });
+    expect(parseOperation("source:tape counterparty:TAPE account:alfa 50000 #income", accounts)).toMatchObject({
+      transactionKind: "income",
+      accountToId: "alfa",
+      sourceKey: "tape",
+      counterpartyName: "TAPE",
+    });
+  });
+
   it("submits once with Enter and closes the dialog", async () => {
     const onAdd = vi.fn();
 

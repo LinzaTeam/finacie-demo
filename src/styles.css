@@ -22,6 +22,9 @@
   --primary: #364c84;
   --primary-hover: #2d4070;
   --primary-soft: #d0d9f5;
+  --interactive-hover: #e7f1ab;
+  --interactive-hover-text: #333333;
+  --interactive-hover-border: rgb(54 76 132 / 0.28);
   --positive: #307455;
   --positive-soft: #e7f1ab;
   --negative: #974a54;
@@ -51,6 +54,9 @@ html[data-theme="dark"] {
   --primary: #95b1ee;
   --primary-hover: #aec3f1;
   --primary-soft: #44557e;
+  --interactive-hover: #e7f1ab;
+  --interactive-hover-text: #333333;
+  --interactive-hover-border: rgb(231 241 171 / 0.7);
   --positive: #e7f1ab;
   --positive-soft: #49513a;
   --negative: #ffafb5;
@@ -537,13 +543,6 @@ html[data-theme="dark"] .period-control[aria-expanded="true"] {
   cursor: pointer;
 }
 
-.period-arrow:hover:not(:disabled),
-.period-month-grid button:hover:not(:disabled),
-.period-current:hover {
-  color: var(--midnight);
-  background: var(--primary-soft);
-}
-
 .period-arrow:disabled,
 .period-month-grid button:disabled {
   cursor: not-allowed;
@@ -584,12 +583,6 @@ html[data-theme="dark"] .period-control[aria-expanded="true"] {
   cursor: pointer;
   font-size: 10px;
   font-weight: 700;
-}
-
-html[data-theme="dark"] .period-arrow:hover:not(:disabled),
-html[data-theme="dark"] .period-month-grid button:hover:not(:disabled),
-html[data-theme="dark"] .period-current:hover {
-  color: var(--ivory);
 }
 
 .notice-stack {
@@ -2352,6 +2345,17 @@ html[data-theme="dark"] .search-dialog > footer a {
 }
 
 @media (hover: hover) and (pointer: fine) {
+  button:not(:disabled):not(.danger-button):not(.palette-active):not([aria-pressed="true"]):hover {
+    border-color: var(--interactive-hover-border);
+    color: var(--interactive-hover-text);
+    background: var(--interactive-hover);
+  }
+
+  .color-palette button:not(:disabled):hover {
+    border-color: var(--surface-elevated);
+    box-shadow: 0 0 0 3px var(--interactive-hover);
+  }
+
   .brand:hover,
   .nav-link:hover,
   .account-nav:hover {
@@ -2363,18 +2367,6 @@ html[data-theme="dark"] .search-dialog > footer a {
   html[data-theme="dark"] .nav-link:hover,
   html[data-theme="dark"] .account-nav:hover {
     color: var(--ivory);
-  }
-
-  .primary-button:not(:disabled):hover {
-    background: var(--primary-hover);
-  }
-
-  .icon-button:hover,
-  .header-search-button:hover,
-  .period-control:hover,
-  .theme-setting:hover {
-    border-color: var(--line-strong);
-    background: var(--surface-muted);
   }
 
   .text-link:hover {

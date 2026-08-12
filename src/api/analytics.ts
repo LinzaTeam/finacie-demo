@@ -24,6 +24,16 @@ type RawAnalytics = {
     amount_cents: number;
     people: Array<{ key: string; name: string; amount_cents: number }>;
   }>;
+  counterparties: Array<{
+    key: string;
+    name: string;
+    entity_type: "company" | "person" | "merchant" | "platform" | "other";
+    income_cents: number;
+    expense_cents: number;
+    net_cents: number;
+    transaction_count: number;
+    last_seen: string;
+  }>;
 };
 
 function normalize(raw: RawAnalytics): AnalyticsData {
@@ -63,6 +73,16 @@ function normalize(raw: RawAnalytics): AnalyticsData {
         amountMinor: person.amount_cents,
       })),
     })),
+    counterparties: raw.counterparties.map((counterparty) => ({
+      key: counterparty.key,
+      name: counterparty.name,
+      entityType: counterparty.entity_type,
+      incomeMinor: counterparty.income_cents,
+      expenseMinor: counterparty.expense_cents,
+      netMinor: counterparty.net_cents,
+      transactionCount: counterparty.transaction_count,
+      lastSeen: counterparty.last_seen,
+    })),
   };
 }
 
@@ -84,12 +104,32 @@ function demoAnalytics(
     expenseMinor: 0,
   }]));
   const categories = new Map<string, AnalyticsData["categories"][number]>();
+  const counterparties = new Map<string, AnalyticsData["counterparties"][number]>();
   transactions.forEach((transaction) => {
     const bucket = scope === "year"
       ? transaction.occurredAt.slice(0, 7)
       : transaction.occurredAt.slice(0, 10);
     const point = buckets.get(bucket) ?? { bucket, incomeMinor: 0, expenseMinor: 0 };
     const person = personTotals.get(transaction.subjectKey || "") ?? null;
+    if (transaction.counterpartyName) {
+      const key = transaction.counterpartyKey || transaction.counterpartyName.toLocaleLowerCase("ru-RU");
+      const counterparty = counterparties.get(key) ?? {
+        key,
+        name: transaction.counterpartyName,
+        entityType: transaction.kind === "income" ? "company" : "merchant",
+        incomeMinor: 0,
+        expenseMinor: 0,
+        netMinor: 0,
+        transactionCount: 0,
+        lastSeen: transaction.occurredAt.slice(0, 10),
+      };
+      if (transaction.kind === "income") counterparty.incomeMinor += transaction.amountMinor;
+      if (transaction.kind === "expense") counterparty.expenseMinor += transaction.amountMinor;
+      counterparty.netMinor = counterparty.incomeMinor - counterparty.expenseMinor;
+      counterparty.transactionCount += 1;
+      counterparty.lastSeen = [counterparty.lastSeen, transaction.occurredAt.slice(0, 10)].sort().at(-1) || counterparty.lastSeen;
+      counterparties.set(key, counterparty);
+    }
     if (transaction.kind === "income") {
       point.incomeMinor += transaction.amountMinor;
       if (person) person.incomeMinor += transaction.amountMinor;
@@ -130,6 +170,7 @@ function demoAnalytics(
     people: visiblePeople,
     series: [...buckets.values()].sort((a, b) => a.bucket.localeCompare(b.bucket)),
     categories: [...categories.values()].sort((a, b) => b.amountMinor - a.amountMinor),
+    counterparties: [...counterparties.values()].sort((a, b) => b.incomeMinor - a.incomeMinor),
   };
 }
 

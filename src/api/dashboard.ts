@@ -73,6 +73,8 @@ type RawDashboard = {
     amount_cents: number;
     currency: string;
     category_key?: string;
+    counterparty_key?: string | null;
+    counterparty_type?: string | null;
   }>;
   people?: Array<{
     key: string;
@@ -250,6 +252,8 @@ export function normalizeDashboard(raw: RawDashboard): DashboardData {
       subjectKey: transaction.person_key,
       subjectName: transaction.person_name,
       categoryKey: transaction.category_key,
+      counterpartyKey: transaction.counterparty_key || undefined,
+      counterpartyName: transaction.counterparty || undefined,
     })),
     people: (raw.people ?? []).map((person) => ({
       key: person.key,

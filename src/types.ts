@@ -83,6 +83,8 @@ export type DashboardData = {
     subjectKey?: string;
     subjectName?: string;
     categoryKey?: string;
+    counterpartyKey?: string;
+    counterpartyName?: string;
   }>;
   people: Array<{
     key: string;
@@ -153,5 +155,15 @@ export type AnalyticsData = {
     color: string;
     amountMinor: number;
     people: Array<{ key: string; name: string; amountMinor: number }>;
+  }>;
+  counterparties: Array<{
+    key: string;
+    name: string;
+    entityType: "company" | "person" | "merchant" | "platform" | "other";
+    incomeMinor: number;
+    expenseMinor: number;
+    netMinor: number;
+    transactionCount: number;
+    lastSeen: string;
   }>;
 };

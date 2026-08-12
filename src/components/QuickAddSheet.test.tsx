@@ -18,20 +18,40 @@ const accounts = [
     color: "#95B1EE",
     avatarDataUrl: null,
   },
+  {
+    id: "alfa",
+    name: "Альфа Банк (основной счет)",
+    group: "operating" as const,
+    balanceMinor: 2_000_00,
+    currency: "RUB",
+    convertedBalanceMinor: 2_000_00,
+    updatedAt: "2026-08-12T12:00:00+03:00",
+    ownerKey: "person-2",
+    ownerName: "Участник 2",
+    iconKey: "landmark",
+    color: "#364C84",
+    avatarDataUrl: null,
+  },
 ];
 const people = [
   { key: "person-1", name: "Участник 1", avatarDataUrl: null, accentColor: "#364C84" },
   { key: "person-2", name: "Участник 2", avatarDataUrl: null, accentColor: "#95B1EE" },
 ];
+const categories = [
+  { id: "coffee", label: "Кафе", iconKey: "coffee", color: "#E7C06D", amountMinor: 0, currency: "RUB", share: 0 },
+  { id: "other", label: "Другое", iconKey: "shapes", color: "#D0D9F5", amountMinor: 0, currency: "RUB", share: 0 },
+];
 
 describe("natural operation input", () => {
   it("parses an expense with amount and account", () => {
-    expect(parseOperation("Кофе 420 с Т-Банк", accounts)).toEqual({
+    expect(parseOperation("Кофе 420 с Т-Банк", accounts)).toMatchObject({
       title: "Кофе",
-      detail: "Оплата, Т-Банк",
+      detail: "Списание, Т-Банк",
       amountMinor: 42_000,
       kind: "expense",
-      accountId: "tbank",
+      transactionKind: "card_payment",
+      accountFromId: "tbank",
+      categoryKey: "coffee",
     });
   });
 
@@ -39,6 +59,18 @@ describe("natural operation input", () => {
     expect(parseOperation("Доход 35000", accounts)).toMatchObject({
       amountMinor: 3_500_000,
       kind: "income",
+    });
+  });
+
+  it("recognizes a company receipt as income with its counterparty", () => {
+    expect(parseOperation("поступление компании TAPE 140000 на Альфа", accounts)).toMatchObject({
+      amountMinor: 14_000_000,
+      kind: "income",
+      transactionKind: "income",
+      accountToId: "alfa",
+      sourceKey: "tape",
+      counterpartyName: "TAPE",
+      counterpartyType: "company",
     });
   });
 
@@ -52,6 +84,7 @@ describe("natural operation input", () => {
           open={open}
           source="demo"
           accounts={accounts}
+          categories={categories}
           currency="RUB"
           canWrite
           actorName="Демо-профиль"
@@ -81,6 +114,7 @@ describe("natural operation input", () => {
         open
         source="demo"
         accounts={accounts}
+        categories={categories}
         currency="RUB"
         canWrite
         actorName="Участник 1"
@@ -91,7 +125,7 @@ describe("natural operation input", () => {
       />,
     );
     fireEvent.click(screen.getByRole("button", { name: /Участник 2/ }));
-    fireEvent.change(screen.getByLabelText("Напишите как есть"), { target: { value: "Кофе 420" } });
+    fireEvent.change(screen.getByLabelText("Напишите как есть"), { target: { value: "Кофе 420 с Т-Банк" } });
     fireEvent.click(screen.getByRole("button", { name: "Готово" }));
     await waitFor(() => expect(onAdd).toHaveBeenCalledWith(expect.objectContaining({ subjectKey: "person-2" })));
   });

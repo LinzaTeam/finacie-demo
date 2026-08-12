@@ -79,7 +79,7 @@ export const demoDashboard: DashboardData = {
     { date: "2026-08-12", incomeMinor: 0, expenseMinor: 16_141_92 },
   ],
   categories: [
-    { id: "food", label: "Продукты", iconKey: "shopping-basket", color: "#9ED89E", amountMinor: 31_285_42, currency: "RUB", share: 0.243 },
+    { id: "groceries", label: "Продукты", iconKey: "shopping-basket", color: "#9ED89E", amountMinor: 31_285_42, currency: "RUB", share: 0.243 },
     { id: "home", label: "Дом и быт", iconKey: "house", color: "#E7C06D", amountMinor: 24_730_00, currency: "RUB", share: 0.192 },
     { id: "transport", label: "Транспорт", iconKey: "tram-front", color: "#95B1EE", amountMinor: 18_460_20, currency: "RUB", share: 0.143 },
     { id: "services", label: "Сервисы", iconKey: "server", color: "#364C84", amountMinor: 16_992_00, currency: "RUB", share: 0.132 },
@@ -181,7 +181,8 @@ export const demoDashboard: DashboardData = {
       currency: "RUB",
       status: "confirmed",
       actorName: "Участник 1",
-      subjectKey: "person-1", subjectName: "Участник 1", categoryKey: "food",
+      subjectKey: "person-1", subjectName: "Участник 1", categoryKey: "groceries",
+      counterpartyKey: "city-market", counterpartyName: "Городской маркет",
     },
     {
       id: "tx-2",
@@ -194,6 +195,7 @@ export const demoDashboard: DashboardData = {
       status: "confirmed",
       actorName: "Участник 2",
       subjectKey: "person-2", subjectName: "Участник 2",
+      counterpartyKey: "north-studio", counterpartyName: "Студия Север",
     },
     {
       id: "tx-3",
@@ -206,6 +208,7 @@ export const demoDashboard: DashboardData = {
       status: "confirmed",
       actorName: "Участник 1",
       subjectKey: "person-1", subjectName: "Участник 1", categoryKey: "services",
+      counterpartyKey: "cloud-hosting", counterpartyName: "Облачный хостинг",
     },
     {
       id: "tx-4",
@@ -230,6 +233,7 @@ export const demoDashboard: DashboardData = {
       status: "pending_review",
       actorName: "Участник 1",
       subjectKey: "person-1", subjectName: "Участник 1", categoryKey: "coffee",
+      counterpartyKey: "coffee-1841", counterpartyName: "Кофейня 1841",
     },
     {
       id: "tx-6",
@@ -242,6 +246,7 @@ export const demoDashboard: DashboardData = {
       status: "confirmed",
       actorName: "Участник 2",
       subjectKey: "person-2", subjectName: "Участник 2", categoryKey: "transport",
+      counterpartyKey: "city-taxi", counterpartyName: "Городское такси",
     },
     {
       id: "tx-7",
@@ -254,6 +259,7 @@ export const demoDashboard: DashboardData = {
       status: "confirmed",
       actorName: "Участник 1",
       subjectKey: "person-1", subjectName: "Участник 1", categoryKey: "health",
+      counterpartyKey: "pharmacy", counterpartyName: "Аптека рядом",
     },
     {
       id: "tx-8",
@@ -266,6 +272,7 @@ export const demoDashboard: DashboardData = {
       status: "confirmed",
       actorName: "Участник 2",
       subjectKey: "person-2", subjectName: "Участник 2", categoryKey: "home",
+      counterpartyKey: "home-store", counterpartyName: "Магазин для дома",
     },
     {
       id: "tx-9",
@@ -278,6 +285,7 @@ export const demoDashboard: DashboardData = {
       status: "confirmed",
       actorName: "Участник 1",
       subjectKey: "person-1", subjectName: "Участник 1", categoryKey: "services",
+      counterpartyKey: "music-service", counterpartyName: "Музыкальный сервис",
     },
     {
       id: "tx-10",
@@ -290,6 +298,7 @@ export const demoDashboard: DashboardData = {
       status: "confirmed",
       actorName: "Участник 2",
       subjectKey: "person-2", subjectName: "Участник 2",
+      counterpartyKey: "project-company", counterpartyName: "Проектная компания",
     },
   ],
   reconciliation: {

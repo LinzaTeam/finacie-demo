@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react";
-import { BarChart3, CircleDot, LineChart } from "lucide-react";
+import { BarChart3, CircleDot, LineChart, TrendingUp } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { getAnalytics } from "../api/analytics";
 import { IconGlyph } from "../components/IconGlyph";
@@ -68,8 +68,41 @@ function AnalyticsContent({ value }: { value: AnalyticsData }) {
       <article className="panel analytics-panel"><SectionTitle title="Вклад участников" action={<BarChart3 size={18} />} /><PeopleBars value={value} /></article>
       <article className="panel analytics-panel"><SectionTitle title="Категории расходов" action={<CircleDot size={18} />} /><div className="analytics-pie-layout"><div className="analytics-pie" style={{ background: pie }}><span><strong>{value.categories.length}</strong><small>категорий</small></span></div><div className="pie-legend">{value.categories.slice(0, 7).map((category) => <div key={category.key}><span style={{ background: category.color }} /><strong>{category.name}</strong><small>{formatMoney(category.amountMinor, value.currency)}</small></div>)}</div></div></article>
       <article className="panel analytics-panel analytics-category-people"><SectionTitle title="Категории по участникам" /><div className="category-people-list">{value.categories.map((category) => <div className="category-people-row" key={category.key}><span className="category-preview" style={{ background: category.color }}><IconGlyph name={category.iconKey} size={17} /></span><strong>{category.name}</strong><div>{category.people.length ? category.people.map((person) => <span key={person.key}>{person.name}<b>{formatMoney(person.amountMinor, value.currency)}</b></span>) : <span>Нет данных</span>}</div><b>{formatMoney(category.amountMinor, value.currency)}</b></div>)}</div></article>
+      <article className="panel analytics-panel analytics-counterparties"><SectionTitle title="Контрагенты и источники" action={<TrendingUp size={18} />} /><CounterpartyRanking value={value} /></article>
     </section>
   </>;
+}
+
+function CounterpartyRanking({ value }: { value: AnalyticsData }) {
+  const income = [...value.counterparties]
+    .filter((item) => item.incomeMinor > 0)
+    .sort((left, right) => right.incomeMinor - left.incomeMinor)
+    .slice(0, 6);
+  const expenses = [...value.counterparties]
+    .filter((item) => item.expenseMinor > 0)
+    .sort((left, right) => right.expenseMinor - left.expenseMinor)
+    .slice(0, 6);
+  const list = (items: typeof income, mode: "income" | "expense") => items.length ? (
+    <ol className="counterparty-ranking-list">
+      {items.map((item, index) => <li key={item.key}>
+        <span>{index + 1}</span>
+        <div><strong>{item.name}</strong><small>{item.transactionCount} {operationWord(item.transactionCount)}, последняя {new Date(`${item.lastSeen}T12:00:00`).toLocaleDateString("ru-RU", { day: "numeric", month: "short" })}</small></div>
+        <b className={mode === "income" ? "amount-income" : ""}>{mode === "income" ? "+" : ""}{formatMoney(mode === "income" ? item.incomeMinor : item.expenseMinor, value.currency)}</b>
+      </li>)}
+    </ol>
+  ) : <p className="counterparty-empty">Пока нет подтверждённых операций с контрагентами.</p>;
+  return <div className="counterparty-ranking-columns">
+    <section><h3>Кто приносит доход</h3>{list(income, "income")}</section>
+    <section><h3>Кому уходит больше всего</h3>{list(expenses, "expense")}</section>
+  </div>;
+}
+
+function operationWord(count: number): string {
+  const tens = count % 100;
+  const units = count % 10;
+  if (units === 1 && tens !== 11) return "операция";
+  if (units >= 2 && units <= 4 && (tens < 12 || tens > 14)) return "операции";
+  return "операций";
 }
 
 function PeopleBars({ value }: { value: AnalyticsData }) {

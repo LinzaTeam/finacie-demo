@@ -145,20 +145,26 @@ export function App() {
         subjectName: current.data.people.find((person) => person.key === operation.subjectKey)?.name
           || current.session?.user.name
           || "Участник",
+        categoryKey: operation.categoryKey,
+        counterpartyKey: operation.counterpartyKey,
+        counterpartyName: operation.counterpartyName,
       };
       const isIncome = operation.kind === "income";
+      const isExpense = operation.transactionKind === "card_payment"
+        || operation.transactionKind === "transfer_to_person";
       return {
         ...current,
         data: {
           ...current.data,
           availableMoney: {
             ...current.data.availableMoney,
-            amountMinor: current.data.availableMoney.amountMinor + (isIncome ? operation.amountMinor : -operation.amountMinor),
+            amountMinor: current.data.availableMoney.amountMinor
+              + (isIncome ? operation.amountMinor : isExpense ? -operation.amountMinor : 0),
           },
           month: {
             ...current.data.month,
             incomeMinor: current.data.month.incomeMinor + (isIncome ? operation.amountMinor : 0),
-            expenseMinor: current.data.month.expenseMinor + (isIncome ? 0 : operation.amountMinor),
+            expenseMinor: current.data.month.expenseMinor + (isExpense ? operation.amountMinor : 0),
           },
           transactions: [transaction, ...current.data.transactions],
         },
@@ -172,29 +178,31 @@ export function App() {
       addDemoOperation(operation);
       return;
     }
-    const normalizedTitle = operation.title.toLocaleLowerCase("ru-RU");
-    const category = normalizedTitle.includes("коф")
-      ? "coffee"
-      : normalizedTitle.includes("продукт")
-        ? "groceries"
-        : normalizedTitle.includes("метро") || normalizedTitle.includes("такси")
-          ? "transport"
-          : "other";
-    const accountId = operation.accountId || state.data.accounts[0]?.id;
-    if (!accountId) throw new Error("Account is required");
+    const accountFrom = operation.accountFromId;
+    const accountTo = operation.accountToId;
+    if (operation.transactionKind === "income" && !accountTo) throw new Error("Destination account is required");
+    if (operation.transactionKind !== "income" && !accountFrom) throw new Error("Source account is required");
+    if (operation.transactionKind === "own_transfer" && !accountTo) throw new Error("Destination account is required");
     await createTransaction({
       op_date: dateForPeriod(selectedPeriod),
-      kind: operation.kind === "income" ? "income" : "card_payment",
+      kind: operation.transactionKind,
       amount_cents: operation.amountMinor,
       person_key: operation.subjectKey,
-      ...(operation.kind === "income"
-        ? { account_to: accountId }
+      ...(operation.transactionKind === "income"
+        ? { account_to: accountTo, source: operation.sourceKey || "other" }
+        : operation.transactionKind === "own_transfer"
+          ? { account_from: accountFrom, account_to: accountTo }
         : {
-            account_from: accountId,
-            category,
-            category_custom: category === "other" ? operation.title : undefined,
+            account_from: accountFrom,
+            category: operation.categoryKey || "other",
+            category_custom: (operation.categoryKey || "other") === "other" ? operation.title : undefined,
             expense_owner: "common",
           }),
+      counterparty: operation.counterpartyName,
+      counterparty_key: operation.counterpartyKey,
+      counterparty_type: operation.counterpartyType,
+      counterparty_recognition_source: operation.learnedFromHistory ? "history" : "explicit",
+      counterparty_confidence: operation.confidence,
       note: operation.title,
     });
     setAttempt((value) => value + 1);
@@ -276,6 +284,7 @@ export function App() {
           open={quickAddOpen}
           source={ready.source}
           accounts={ready.data.accounts}
+          categories={ready.data.categories}
           currency={ready.data.availableMoney.currency}
           canWrite={Boolean(ready.session?.capabilities.write)}
           actorName={activePerson?.name || ready.session?.user.name || "Не выполнен вход"}

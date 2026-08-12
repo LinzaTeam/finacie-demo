@@ -2172,6 +2172,74 @@ html[data-theme="dark"] .search-dialog > footer a {
   line-height: 1.55;
 }
 
+.operation-review-grid {
+  display: grid;
+  margin-top: 12px;
+}
+
+.operation-review-grid > label,
+.operation-review-grid > .review-static,
+.operation-review-grid > .recognition-reason {
+  display: grid;
+  min-height: 48px;
+  grid-template-columns: minmax(120px, .8fr) minmax(0, 1.2fr);
+  align-items: center;
+  gap: 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.operation-review-grid > label > span,
+.review-static > span,
+.recognition-reason > span {
+  color: var(--text-secondary);
+  font-size: 10px;
+}
+
+.operation-review-grid input,
+.operation-review-grid select {
+  min-width: 0;
+  min-height: 38px;
+  padding: 7px 8px;
+  border-color: transparent;
+  text-align: right;
+  font-size: 11px;
+  font-weight: 680;
+}
+
+.operation-review-grid input:focus,
+.operation-review-grid select:focus {
+  border-color: var(--sky);
+}
+
+.review-static strong {
+  text-align: right;
+  font-size: 13px;
+}
+
+.history-match {
+  display: flex;
+  margin: 0 0 7px;
+  padding: 9px 10px;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid color-mix(in srgb, var(--positive) 28%, transparent);
+  border-radius: 10px;
+  color: var(--positive) !important;
+  background: color-mix(in srgb, var(--positive) 8%, transparent);
+  font-weight: 650;
+}
+
+.recognition-reason p {
+  margin: 8px 0;
+  text-align: right;
+}
+
+.operation-validation {
+  margin: 10px 0 0 !important;
+  color: var(--negative) !important;
+  font-weight: 650;
+}
+
 .sheet-error {
   margin: 10px 0 0;
   color: var(--negative);
@@ -2684,6 +2752,7 @@ html[data-theme="dark"] .search-dialog > footer a {
 .analytics-grid { display: grid; margin-top: 14px; grid-template-columns: minmax(0, 1.4fr) minmax(300px, .8fr); gap: 14px; }
 .analytics-panel { min-width: 0; padding: 18px; }
 .analytics-category-people { grid-column: 1 / -1; }
+.analytics-counterparties { grid-column: 1 / -1; }
 .flow-line-chart svg { display: block; width: 100%; min-height: 220px; overflow: visible; }
 .chart-grid-lines line { stroke: var(--line); stroke-width: 1; }
 .income-line,
@@ -2719,11 +2788,23 @@ html[data-theme="dark"] .search-dialog > footer a {
 .category-people-row > div { display: flex; flex-wrap: wrap; gap: 6px; }
 .category-people-row > div span { display: inline-flex; padding: 5px 7px; gap: 8px; border-radius: 8px; color: var(--text-secondary); background: var(--surface-muted); font-size: 8px; }
 .category-people-row b { font-variant-numeric: tabular-nums; }
+.counterparty-ranking-columns { display: grid; margin-top: 8px; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px; }
+.counterparty-ranking-columns h3 { margin: 8px 0 6px; font-size: 11px; }
+.counterparty-ranking-list { display: grid; margin: 0; padding: 0; list-style: none; }
+.counterparty-ranking-list li { display: grid; min-height: 58px; grid-template-columns: 24px minmax(0, 1fr) auto; align-items: center; gap: 9px; border-bottom: 1px solid var(--line); }
+.counterparty-ranking-list li:last-child { border-bottom: 0; }
+.counterparty-ranking-list li > span { display: grid; width: 22px; height: 22px; place-items: center; border-radius: 7px; color: var(--midnight); background: var(--lavender); font-size: 8px; font-weight: 750; }
+.counterparty-ranking-list li > div { display: grid; gap: 3px; }
+.counterparty-ranking-list strong { font-size: 10px; }
+.counterparty-ranking-list small { color: var(--text-secondary); font-size: 8px; }
+.counterparty-ranking-list b { font-size: 10px; font-variant-numeric: tabular-nums; }
+.counterparty-empty { margin: 14px 0; color: var(--text-secondary); font-size: 9px; }
 
 @media (max-width: 1080px) {
   .category-editor-grid { grid-template-columns: 1fr; }
   .analytics-grid { grid-template-columns: 1fr; }
   .analytics-category-people { grid-column: auto; }
+  .analytics-counterparties { grid-column: auto; }
 }
 
 @media (max-width: 767px) {
@@ -2751,6 +2832,10 @@ html[data-theme="dark"] .search-dialog > footer a {
   .analytics-pie > span { width: 70px; height: 70px; }
   .category-people-row { padding: 10px 0; grid-template-columns: 36px minmax(0, 1fr) auto; }
   .category-people-row > div { grid-column: 2 / -1; }
+  .counterparty-ranking-columns { grid-template-columns: 1fr; gap: 20px; }
+  .operation-review-grid > label,
+  .operation-review-grid > .review-static,
+  .operation-review-grid > .recognition-reason { grid-template-columns: minmax(100px, .8fr) minmax(0, 1.2fr); }
   .avatar-editor { align-items: flex-start; flex-wrap: wrap; }
 }
 

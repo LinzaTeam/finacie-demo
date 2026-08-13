@@ -19,6 +19,7 @@ describe("analytics page", () => {
       />,
     );
     expect(await screen.findByText("Вклад участников")).toBeInTheDocument();
+    expect(screen.getByLabelText("Участник")).toHaveClass("person-filter-select");
     fireEvent.change(screen.getByLabelText("Участник"), { target: { value: "person-2" } });
     fireEvent.click(screen.getByRole("button", { name: "По месяцам" }));
     await waitFor(() => {

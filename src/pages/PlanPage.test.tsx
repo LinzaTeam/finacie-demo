@@ -22,7 +22,7 @@ describe("plan page", () => {
     );
 
     expect(screen.getByText("Не задан")).toBeInTheDocument();
-    expect(screen.getByText("Добавьте регулярные и разовые расходы ниже")).toBeInTheDocument();
+    expect(screen.getByText("Добавьте обязательные платежи и лимиты по категориям")).toBeInTheDocument();
   });
 
   it("shows categories and planned payments separately", () => {
@@ -40,7 +40,8 @@ describe("plan page", () => {
       />,
     );
 
-    expect(screen.getAllByText("за период").length).toBe(demoDashboard.categories.length);
+    expect(screen.getByText("План и факт по категориям")).toBeInTheDocument();
+    expect(screen.getAllByText(/из .*₽/).length).toBe(demoDashboard.categories.length);
     expect(screen.getByText("Облачный сервис")).toBeInTheDocument();
   });
 
@@ -70,6 +71,36 @@ describe("plan page", () => {
 
     expect(onDataChange).toHaveBeenCalledWith(expect.objectContaining({
       plannedPayments: expect.arrayContaining([expect.objectContaining({ name: "Страховка", amountMinor: 125_000 })]),
+    }));
+  });
+
+  it("saves a participant's category limits as one monthly plan in demo mode", () => {
+    const onDataChange = vi.fn();
+    render(
+      <PlanPage
+        data={demoDashboard}
+        source="demo"
+        theme="light"
+        onThemeToggle={vi.fn()}
+        onNewOperation={vi.fn()}
+        onSearch={vi.fn()}
+        activeUser="Участник 1"
+        activeUserKey="person-1"
+        selectedPeriod="2026-08"
+        onPeriodChange={vi.fn()}
+        onDataChange={onDataChange}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Запланировать месяц" }));
+    expect(screen.getByRole("dialog", { name: "Запланировать месяц" })).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("Лимит Продукты"), { target: { value: "24500" } });
+    fireEvent.click(screen.getByRole("button", { name: "Сохранить план" }));
+
+    expect(onDataChange).toHaveBeenCalledWith(expect.objectContaining({
+      monthlyCategoryBudgets: expect.arrayContaining([
+        expect.objectContaining({ personKey: "person-1", categoryKey: "groceries", amountMinor: 2_450_000 }),
+      ]),
     }));
   });
 });

@@ -4,10 +4,11 @@ import {
   Banknote,
   CircleDollarSign,
   RefreshCw,
-  ShieldCheck,
+  ShieldAlert,
   WalletCards,
 } from "lucide-react";
 import { formatDateTime, formatMoney, formatShortDate } from "../lib/format";
+import { routeHref } from "../routes";
 import type { DashboardData } from "../types";
 
 export function TransactionRow({
@@ -40,17 +41,23 @@ export function TransactionRow({
               : `Внёс: ${transaction.actorName}`}
           </small>
         ) : null}
+        {transaction.status === "pending_review" ? (
+          <a
+            className="status-label status-label-action"
+            href={routeHref("attention")}
+            title="Операция похожа на уже внесённую. Откройте «Контроль», чтобы принять решение."
+          >
+            <ShieldAlert size={14} strokeWidth={1.8} aria-hidden="true" />
+            Возможный дубль
+          </a>
+        ) : null}
       </span>
-      {transaction.status === "pending_review" ? (
-        <span className="status-label">
-          <ShieldCheck size={14} strokeWidth={1.8} aria-hidden="true" />
-          Проверка
-        </span>
-      ) : null}
-      {showDate ? <time>{formatShortDate(transaction.occurredAt)}</time> : null}
-      <strong className={`transaction-amount amount-${transaction.kind}`}>
-        {sign}{formatMoney(transaction.amountMinor, transaction.currency)}
-      </strong>
+      <span className="transaction-value">
+        {showDate ? <time>{formatShortDate(transaction.occurredAt)}</time> : null}
+        <strong className={`transaction-amount amount-${transaction.kind}`}>
+          {sign}{formatMoney(transaction.amountMinor, transaction.currency)}
+        </strong>
+      </span>
     </div>
   );
 }

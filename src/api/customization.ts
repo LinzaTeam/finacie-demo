@@ -26,6 +26,18 @@ async function writeJson(path: string, method: string, body?: unknown, idempoten
   }
 }
 
+async function readJson<T>(path: string): Promise<T> {
+  const headers: Record<string, string> = { Accept: "application/json" };
+  const devUser = import.meta.env.VITE_FINANCE_DEV_USER;
+  if (devUser) headers["X-Finance-Dev-User"] = devUser;
+  const response = await fetch(path, { headers, credentials: "same-origin" });
+  if (!response.ok) {
+    const payload = await response.json().catch(() => null) as { detail?: string } | null;
+    throw new Error(payload?.detail || `API returned ${response.status}`);
+  }
+  return response.json() as Promise<T>;
+}
+
 export type ProfileInput = {
   display_name: string;
   avatar_data_url: string | null;
@@ -43,7 +55,7 @@ export type AccountInput = {
 };
 
 export type GoalInput = {
-  owner_person_key: string;
+  owner_person_key: string | null;
   name: string;
   target_cents: number;
   current_cents: number;
@@ -51,6 +63,13 @@ export type GoalInput = {
   target_date: string | null;
   icon_key: string;
   color: string;
+};
+
+export type GoalTopUpInput = {
+  amount_cents: number;
+  account_from: string;
+  account_to: string;
+  person_key: string;
 };
 
 export type PlannedPaymentInput = {
@@ -76,6 +95,26 @@ export type ManualObligationInput = {
   recurrence: "once" | "monthly";
   account_key: string | null;
   note: string | null;
+};
+
+export type MonthlyCategoryBudgetEntry = {
+  person_key: string;
+  category_key: string;
+  amount_cents: number;
+};
+
+export type BugReportStatus = "new" | "in_progress" | "fixed";
+
+export type BugReport = {
+  report_id: number;
+  author_person_key: string;
+  author_name: string;
+  message: string;
+  screenshots: string[];
+  status: BugReportStatus;
+  created_at: string;
+  updated_at: string;
+  resolved_at: string | null;
 };
 
 export function saveProfile(personKey: string, input: ProfileInput): Promise<void> {
@@ -116,6 +155,15 @@ export function deleteGoal(goalId: string): Promise<void> {
   return writeJson(`/api/v1/goals/${encodeURIComponent(goalId)}`, "DELETE");
 }
 
+export function topUpGoal(goalId: string, input: GoalTopUpInput): Promise<void> {
+  return writeJson(
+    `/api/v1/goals/${encodeURIComponent(goalId)}/top-ups`,
+    "POST",
+    input,
+    true,
+  );
+}
+
 export function savePlannedPayment(paymentId: string, input: PlannedPaymentInput): Promise<void> {
   return writeJson(`/api/v1/planned-payments/${encodeURIComponent(paymentId)}`, "PUT", input);
 }
@@ -124,10 +172,57 @@ export function deletePlannedPayment(paymentId: string): Promise<void> {
   return writeJson(`/api/v1/planned-payments/${encodeURIComponent(paymentId)}`, "DELETE");
 }
 
+export function saveMonthlyCategoryBudgetPlan(
+  period: string,
+  budgets: MonthlyCategoryBudgetEntry[],
+): Promise<void> {
+  return writeJson(`/api/v1/monthly-budgets/${encodeURIComponent(period)}`, "PUT", { budgets });
+}
+
 export function saveManualObligation(obligationId: string, input: ManualObligationInput): Promise<void> {
   return writeJson(`/api/v1/obligations/${encodeURIComponent(obligationId)}`, "PUT", input);
 }
 
 export function deleteManualObligation(obligationId: string): Promise<void> {
   return writeJson(`/api/v1/obligations/${encodeURIComponent(obligationId)}`, "DELETE");
+}
+
+export async function getBugReports(status?: BugReportStatus): Promise<BugReport[]> {
+  const query = status ? `?status=${encodeURIComponent(status)}` : "";
+  const payload = await readJson<{ items: BugReport[] }>(`/api/v1/bug-reports${query}`);
+  return payload.items;
+}
+
+export async function createBugReport(input: {
+  message: string;
+  screenshots: string[];
+}): Promise<BugReport> {
+  const response = await fetch("/api/v1/bug-reports", {
+    method: "POST",
+    headers: writeHeaders(),
+    credentials: "same-origin",
+    body: JSON.stringify(input),
+  });
+  if (!response.ok) {
+    const payload = await response.json().catch(() => null) as { detail?: string } | null;
+    throw new Error(payload?.detail || `API returned ${response.status}`);
+  }
+  return response.json() as Promise<BugReport>;
+}
+
+export async function updateBugReportStatus(
+  reportId: number,
+  status: BugReportStatus,
+): Promise<BugReport> {
+  const response = await fetch(`/api/v1/bug-reports/${reportId}`, {
+    method: "PATCH",
+    headers: writeHeaders(),
+    credentials: "same-origin",
+    body: JSON.stringify({ status }),
+  });
+  if (!response.ok) {
+    const payload = await response.json().catch(() => null) as { detail?: string } | null;
+    throw new Error(payload?.detail || `API returned ${response.status}`);
+  }
+  return response.json() as Promise<BugReport>;
 }

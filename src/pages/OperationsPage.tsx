@@ -17,7 +17,7 @@ function longDate(value: string): string {
   }).format(new Date(value));
 }
 
-export function OperationsPage({ data, source, theme, onThemeToggle, onNewOperation, onSearch, activeUser, selectedPeriod, onPeriodChange }: FinancePageProps) {
+export function OperationsPage({ data, source, theme, onThemeToggle, onNewOperation, onSearch, activeUser, selectedPeriod, onPeriodChange, simpleMode = false }: FinancePageProps) {
   const [query, setQuery] = useState("");
   const [kind, setKind] = useState<KindFilter>("all");
   const [person, setPerson] = useState("all");
@@ -48,6 +48,8 @@ export function OperationsPage({ data, source, theme, onThemeToggle, onNewOperat
         title="Операции"
         subtitle="Доходы, расходы и переводы в одной ленте"
         periodLabel={data.meta.periodLabel}
+        fx={data.meta.fx}
+        attentionCount={data.attention.total}
         theme={theme}
         onThemeToggle={onThemeToggle}
         onNewOperation={onNewOperation}
@@ -55,8 +57,9 @@ export function OperationsPage({ data, source, theme, onThemeToggle, onNewOperat
         activeUser={activeUser}
         selectedPeriod={selectedPeriod}
         onPeriodChange={onPeriodChange}
+        simpleMode={simpleMode}
       />
-      <DataNotices source={source} fx={data.meta.fx} />
+      <DataNotices source={source} fx={data.meta.fx} simpleMode={simpleMode} />
 
       <section className="operation-summary" aria-label="Итоги периода">
         <div><span>Расходы</span><strong>{formatMoney(data.month.expenseMinor, data.month.currency)}</strong></div>
@@ -93,13 +96,13 @@ export function OperationsPage({ data, source, theme, onThemeToggle, onNewOperat
             </button>
           ))}
         </div>
-        <label className="person-filter">
+        {!simpleMode ? <label className="person-filter">
           <span>За кого</span>
-          <select value={person} onChange={(event) => setPerson(event.target.value)}>
+          <select className="person-filter-select" value={person} onChange={(event) => setPerson(event.target.value)}>
             <option value="all">Все участники</option>
             {data.people.map((item) => <option value={item.key} key={item.key}>{item.name}</option>)}
           </select>
-        </label>
+        </label> : null}
       </section>
 
       <section className="operations-feed" aria-live="polite">

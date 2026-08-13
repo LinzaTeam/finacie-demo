@@ -12,6 +12,12 @@ export type DashboardResult = {
 type RawDashboard = {
   as_of: string;
   currency: string;
+  exchange_rates?: {
+    source?: string;
+    effective_date?: string | null;
+    fetched_at?: string | null;
+    items?: Array<{ currency: string; rub_per_unit: string | number }>;
+  };
   totals: {
     available_cents: number;
     partial: boolean;
@@ -26,6 +32,8 @@ type RawDashboard = {
   planned?: {
     income_cents: number;
     expense_cents: number;
+    mandatory_expense_cents?: number;
+    category_budget_cents?: number;
     partial?: boolean;
   };
   cashflow_partial?: boolean;
@@ -82,6 +90,14 @@ type RawDashboard = {
     category_key?: string | null;
     note?: string | null;
   }>;
+  monthly_category_budgets?: Array<{
+    period: string;
+    person_key: string;
+    person_name: string;
+    category_key: string;
+    amount_cents: number;
+    currency?: string;
+  }>;
   recent_transactions: Array<{
     id: string | number;
     date: string;
@@ -109,7 +125,7 @@ type RawDashboard = {
   }>;
   goals?: Array<{
     goal_id: string;
-    owner_person_key: string;
+    owner_person_key: string | null;
     owner_name: string;
     name: string;
     target_cents: number;
@@ -119,11 +135,52 @@ type RawDashboard = {
     icon_key: string;
     color: string;
   }>;
+  attention?: {
+    total_count?: number;
+    duplicate_reviews?: Array<{
+      token: string;
+      created_at?: string | null;
+      requester_key?: string;
+      requester_name?: string;
+      reviewer_key?: string;
+      reviewer_name?: string;
+      transaction?: {
+        title?: string;
+        detail?: string | null;
+        kind?: "income" | "expense";
+        amount_cents?: number;
+        currency?: string;
+        date?: string | null;
+      };
+      existing?: {
+        transaction_id?: string | number | null;
+        title?: string;
+        amount_cents?: number;
+        date?: string | null;
+      };
+    }>;
+    reminders?: Array<{
+      id: string;
+      kind: "planned_payment" | "obligation";
+      name: string;
+      detail: string;
+      due_date: string;
+      amount_cents: number;
+      currency: string;
+      owner_key: string;
+      owner_name: string;
+      operation_kind: "income" | "expense";
+      account_key?: string | null;
+      category_key?: string | null;
+    }>;
+  };
   reconciliation: {
     period_start: string;
     period_end: string;
-    missing_count: number;
-    missing: Array<{ person_key: string; person_name: string; date: string }>;
+    automatic?: boolean;
+    confirmed_transaction_count?: number;
+    missing_count?: number;
+    missing?: Array<{ person_key: string; person_name: string; date: string }>;
   };
 };
 
@@ -191,9 +248,9 @@ export function normalizeDashboard(raw: RawDashboard): DashboardData {
   );
   const monthLabel = dateLabel(raw.month.start, { month: "long", year: "numeric" });
   const normalizedMonthLabel = monthLabel.charAt(0).toUpperCase() + monthLabel.slice(1);
-  const completedParticipants = new Set(
-    raw.reconciliation.missing.map((entry) => entry.person_key),
-  ).size;
+  const cbrRates = (raw.exchange_rates?.items ?? [])
+    .map((item) => ({ currency: item.currency, rubPerUnit: Number(item.rub_per_unit) }))
+    .filter((item) => Number.isFinite(item.rubPerUnit));
 
   return {
     meta: {
@@ -206,7 +263,10 @@ export function normalizeDashboard(raw: RawDashboard): DashboardData {
             ? "partial"
             : "complete",
         missingCurrencies,
-        updatedAt: null,
+        updatedAt: raw.exchange_rates?.fetched_at ?? null,
+        source: raw.exchange_rates?.source ?? null,
+        effectiveDate: raw.exchange_rates?.effective_date ?? null,
+        rates: cbrRates,
       },
     },
     availableMoney: {
@@ -254,11 +314,21 @@ export function normalizeDashboard(raw: RawDashboard): DashboardData {
         avatarDataUrl: account.avatar_data_url || null,
       })),
     plan: raw.planned ? {
-      budgetMinor: 0,
+      budgetMinor: raw.planned.expense_cents,
       currency: raw.currency,
       incomeMinor: raw.planned.income_cents,
       expenseMinor: raw.planned.expense_cents,
+      mandatoryExpenseMinor: raw.planned.mandatory_expense_cents ?? raw.planned.expense_cents,
+      categoryBudgetMinor: raw.planned.category_budget_cents ?? 0,
     } : undefined,
+    monthlyCategoryBudgets: (raw.monthly_category_budgets ?? []).map((budget) => ({
+      period: budget.period,
+      personKey: budget.person_key,
+      personName: budget.person_name,
+      categoryKey: budget.category_key,
+      amountMinor: budget.amount_cents,
+      currency: budget.currency || raw.currency,
+    })),
     obligations: raw.obligations.map((obligation) => ({
       id: obligation.key,
       name: obligation.name,
@@ -323,16 +393,56 @@ export function normalizeDashboard(raw: RawDashboard): DashboardData {
       iconKey: goal.icon_key,
       color: goal.color,
     })),
+    attention: {
+      total: raw.attention?.total_count ?? (
+        (raw.attention?.duplicate_reviews?.length ?? 0) + (raw.attention?.reminders?.length ?? 0)
+      ),
+      duplicates: (raw.attention?.duplicate_reviews ?? []).map((review) => ({
+        token: review.token,
+        createdAt: review.created_at ?? null,
+        requesterKey: review.requester_key ?? "",
+        requesterName: review.requester_name ?? "Участник",
+        reviewerKey: review.reviewer_key ?? "",
+        reviewerName: review.reviewer_name ?? "Участник",
+        transaction: {
+          title: review.transaction?.title ?? "Операция",
+          detail: review.transaction?.detail ?? null,
+          kind: review.transaction?.kind ?? "expense",
+          amountMinor: review.transaction?.amount_cents ?? 0,
+          currency: review.transaction?.currency ?? raw.currency,
+          date: review.transaction?.date ?? null,
+        },
+        existing: {
+          transactionId: review.existing?.transaction_id == null ? null : String(review.existing.transaction_id),
+          title: review.existing?.title ?? "Похожая операция",
+          amountMinor: review.existing?.amount_cents ?? 0,
+          date: review.existing?.date ?? null,
+        },
+      })),
+      reminders: (raw.attention?.reminders ?? []).map((reminder) => ({
+        id: reminder.id,
+        kind: reminder.kind,
+        name: reminder.name,
+        detail: reminder.detail,
+        dueDate: reminder.due_date,
+        amountMinor: reminder.amount_cents,
+        currency: reminder.currency,
+        ownerKey: reminder.owner_key,
+        ownerName: reminder.owner_name,
+        operationKind: reminder.operation_kind,
+        accountKey: reminder.account_key ?? null,
+        categoryKey: reminder.category_key ?? null,
+      })),
+    },
     reconciliation: {
       periodLabel: `${dateLabel(raw.reconciliation.period_start)} - ${dateLabel(raw.reconciliation.period_end)}`,
-      status: raw.reconciliation.missing_count === 0 ? "complete" : "attention",
-      completedParticipants: Math.max(0, 2 - completedParticipants),
-      totalParticipants: 2,
-      openIssues: raw.reconciliation.missing_count,
-      nextAction:
-        raw.reconciliation.missing_count === 0
-          ? "Оба участника подтвердили период. Расхождений нет."
-          : `Нужно закрыть ${raw.reconciliation.missing_count} несданных отчётов за период.`,
+      status: "complete",
+      completedParticipants: raw.people?.length ?? 0,
+      totalParticipants: raw.people?.length ?? 0,
+      openIssues: raw.attention?.total_count ?? 0,
+      nextAction: raw.reconciliation.automatic
+        ? `Учтено подтверждённых операций за 7 дней: ${raw.reconciliation.confirmed_transaction_count ?? 0}.`
+        : "В итог попадают только подтверждённые операции.",
     },
   };
 }
@@ -377,14 +487,26 @@ function demoDashboardForPeriod(period: string): DashboardData {
     },
     cashflow: demoDashboard.cashflow.filter((point) => point.date.startsWith(period)),
     categories: [],
+    monthlyCategoryBudgets: [],
+    plan: demoDashboard.plan ? {
+      ...demoDashboard.plan,
+      budgetMinor: demoDashboard.plan.mandatoryExpenseMinor ?? 0,
+      expenseMinor: demoDashboard.plan.mandatoryExpenseMinor ?? 0,
+      categoryBudgetMinor: 0,
+    } : undefined,
     transactions,
+    attention: {
+      total: 0,
+      duplicates: [],
+      reminders: [],
+    },
     reconciliation: {
       ...demoDashboard.reconciliation,
       periodLabel: `${shortDate(startDate)} - ${shortDate(endDate)}`,
       status: "complete",
       completedParticipants: 2,
       openIssues: 0,
-      nextAction: "За выбранный период открытых вопросов нет.",
+      nextAction: "Учтены только подтверждённые операции за выбранный период.",
     },
   };
 }

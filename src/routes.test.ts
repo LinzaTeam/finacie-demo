@@ -5,12 +5,15 @@ describe("app routes", () => {
   it("maps every product section to a standalone hash route", () => {
     expect(routeFromHash("#/operations")).toBe("operations");
     expect(routeFromHash("#/analytics")).toBe("analytics");
+    expect(routeFromHash("#/health")).toBe("health");
     expect(routeFromHash("#/accounts")).toBe("accounts");
     expect(routeFromHash("#/obligations")).toBe("obligations");
+    expect(routeFromHash("#/attention")).toBe("attention");
     expect(routeFromHash("#/plan")).toBe("plan");
     expect(routeFromHash("#/goals")).toBe("goals");
     expect(routeFromHash("#/search")).toBe("search");
     expect(routeFromHash("#/reconciliation")).toBe("reconciliation");
+    expect(routeFromHash("#/guide")).toBe("guide");
     expect(routeFromHash("#/settings")).toBe("settings");
   });
 
@@ -21,6 +24,9 @@ describe("app routes", () => {
 
   it("creates stable links and titles", () => {
     expect(routeHref("accounts")).toBe("#/accounts");
+    expect(routeTitle("health")).toBe("Финансовое здоровье");
     expect(routeTitle("reconciliation")).toBe("Сверка");
+    expect(routeTitle("attention")).toBe("Контроль");
+    expect(routeTitle("guide")).toBe("Справочник");
   });
 });

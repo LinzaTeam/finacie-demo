@@ -17,9 +17,16 @@ export type WebSession = {
 
 export type AuthConfig = {
   telegram_auth_enabled: boolean;
+  browser_pairing_enabled: boolean;
   telegram_bot_username: string | null;
   telegram_login_url: string | null;
   public_url: string | null;
+};
+
+export type BrowserLoginChallenge = {
+  challenge_token: string;
+  code: string;
+  expires_in: number;
 };
 
 export class SessionApiError extends Error {
@@ -110,6 +117,46 @@ export async function getAuthConfig(signal?: AbortSignal): Promise<AuthConfig> {
   });
   if (!response.ok) throw new SessionApiError(response.status, `Auth config returned ${response.status}`);
   return response.json() as Promise<AuthConfig>;
+}
+
+export async function startBrowserLogin(signal?: AbortSignal): Promise<BrowserLoginChallenge> {
+  const response = await fetch("/api/v1/auth/browser/start", {
+    method: "POST",
+    headers: { ...requestHeaders(), "Content-Type": "application/json" },
+    credentials: "same-origin",
+    signal,
+  });
+  if (!response.ok) throw new SessionApiError(response.status, "Не удалось получить код входа");
+  return response.json() as Promise<BrowserLoginChallenge>;
+}
+
+export async function pollBrowserLogin(
+  challengeToken: string,
+  signal?: AbortSignal,
+): Promise<"pending" | WebSession> {
+  const response = await fetch("/api/v1/auth/browser/poll", {
+    method: "POST",
+    headers: { ...requestHeaders(), "Content-Type": "application/json" },
+    credentials: "same-origin",
+    body: JSON.stringify({ challenge_token: challengeToken }),
+    signal,
+  });
+  if (!response.ok) {
+    let detail = "Код входа больше недоступен";
+    try {
+      detail = (await response.json() as { detail?: string }).detail || detail;
+    } catch {
+      // The fallback is safe and actionable without server internals.
+    }
+    throw new SessionApiError(response.status, detail);
+  }
+  const payload = await response.json() as {
+    status: "pending" | "authenticated";
+    csrf_token?: string;
+  };
+  if (payload.status === "pending") return "pending";
+  if (payload.csrf_token) window.sessionStorage.setItem(CSRF_STORAGE_KEY, payload.csrf_token);
+  return readSession(signal);
 }
 
 export async function logoutSession(signal?: AbortSignal): Promise<void> {

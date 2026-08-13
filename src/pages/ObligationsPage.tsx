@@ -1,9 +1,10 @@
 import type { FormEvent } from "react";
-import { CalendarClock, CreditCard, Pencil, Plus, Trash2, UserRound, X } from "lucide-react";
+import { ArrowUpRight, CalendarClock, CreditCard, Pencil, Plus, Trash2, UserRound, X } from "lucide-react";
 import { useState } from "react";
 import { deleteManualObligation, saveManualObligation } from "../api/customization";
 import { DataNotices, PageHeader } from "../components/PageChrome";
 import { formatMoney, formatShortDate } from "../lib/format";
+import { routeHref } from "../routes";
 import type { DashboardData } from "../types";
 import type { FinancePageProps } from "./types";
 
@@ -22,7 +23,7 @@ export function ObligationsPage({
   };
 
   return <main className="app-page" id="page-content" tabIndex={-1}>
-    <PageHeader title="Обязательства" subtitle="Долги и регулярные платежи отдельно от доступных денег" periodLabel={data.meta.periodLabel}
+    <PageHeader title="Обязательства" subtitle="Долги и регулярные платежи отдельно от доступных денег" periodLabel={data.meta.periodLabel} fx={data.meta.fx} attentionCount={data.attention.total}
       theme={theme} onThemeToggle={onThemeToggle} onNewOperation={onNewOperation} onSearch={onSearch}
       activeUser={activeUser} selectedPeriod={selectedPeriod} onPeriodChange={onPeriodChange} />
     <DataNotices source={source} fx={data.meta.fx} />
@@ -39,7 +40,25 @@ export function ObligationsPage({
         return <article className={`obligation-card obligation-card-${(index % 3) + 1}`} key={obligation.id}>
           <span className="obligation-card-icon" aria-hidden="true"><CreditCard size={22} strokeWidth={1.7} /></span>
           <div className="obligation-card-title"><h2>{obligation.name}</h2><span><UserRound size={14} strokeWidth={1.8} aria-hidden="true" />{obligation.owner}</span></div>
-          {editable ? <button className="text-button obligation-edit" type="button" onClick={() => setEditing(obligation)}><Pencil size={14} />Настроить</button> : null}
+          {editable ? (
+            <button
+              className="text-button obligation-edit"
+              type="button"
+              onClick={() => setEditing(obligation)}
+              disabled={!canWrite}
+              aria-label={`Настроить обязательство ${obligation.name}`}
+            >
+              <Pencil size={14} aria-hidden="true" />Настроить
+            </button>
+          ) : obligation.accountKey ? (
+            <a
+              className="text-button obligation-edit"
+              href={routeHref("accounts")}
+              aria-label={`Настроить связанный счёт для ${obligation.name}`}
+            >
+              <Pencil size={14} aria-hidden="true" />Настроить счёт <ArrowUpRight size={13} aria-hidden="true" />
+            </a>
+          ) : null}
           <strong className="obligation-debt">{formatMoney(obligation.debtMinor, obligation.currency)}</strong>
           <dl>
             {obligation.minimumPaymentMinor ? <div><dt>Минимальный платёж</dt><dd>{formatMoney(obligation.minimumPaymentMinor, obligation.currency)}</dd></div> : null}

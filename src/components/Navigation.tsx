@@ -1,9 +1,12 @@
 import {
   ArrowLeftRight,
   BarChart3,
-  CircleGauge,
+  BellRing,
   ClipboardCheck,
+  BookOpen,
+  CircleGauge,
   Flag,
+  HeartPulse,
   LayoutDashboard,
   LogOut,
   Menu,
@@ -23,6 +26,7 @@ const primaryItems = [
   { key: "overview", label: "Сегодня", icon: LayoutDashboard },
   { key: "operations", label: "Операции", icon: ArrowLeftRight },
   { key: "analytics", label: "Аналитика", icon: BarChart3 },
+  { key: "health", label: "Финздоровье", icon: HeartPulse },
   { key: "plan", label: "План", icon: CircleGauge },
   { key: "goals", label: "Цели", icon: Flag },
   { key: "search", label: "Поиск", icon: Search },
@@ -35,10 +39,27 @@ const mobilePrimaryItems = primaryItems.filter(({ key }) => (
 const mobileMoreItems = [
   { key: "plan", label: "План", icon: CircleGauge },
   { key: "goals", label: "Цели", icon: Flag },
+  { key: "health", label: "Финздоровье", icon: HeartPulse },
   { key: "accounts", label: "Счета", icon: WalletCards },
   { key: "obligations", label: "Обязательства", icon: ReceiptText },
-  { key: "reconciliation", label: "Сверка", icon: ClipboardCheck },
+  { key: "attention", label: "Контроль", icon: BellRing },
+  { key: "reconciliation", label: "Автосверка", icon: ClipboardCheck },
+  { key: "guide", label: "Справочник", icon: BookOpen },
   { key: "settings", label: "Настройки", icon: Settings },
+] as const;
+
+const simplePrimaryItems = [
+  { key: "overview", label: "Сегодня", icon: LayoutDashboard },
+  { key: "operations", label: "Операции", icon: ArrowLeftRight },
+] as const;
+
+const simpleMobilePrimaryItems = [
+  ...simplePrimaryItems,
+  { key: "attention", label: "Контроль", icon: BellRing },
+] as const;
+
+const simpleMobileMoreItems = [
+  { key: "settings", label: "Настроить", icon: Settings },
 ] as const;
 
 type NavigationProps = {
@@ -46,10 +67,12 @@ type NavigationProps = {
   accounts?: DashboardData["accounts"];
   obligationsTotal?: number;
   currency?: string;
+  attentionCount?: number;
   activeUser?: { name: string; authMethod?: string; avatarDataUrl?: string | null; accentColor?: string };
   onLogout?: () => void;
   onNewOperation?: () => void;
   onSearch?: () => void;
+  simpleMode?: boolean;
 };
 
 function NavItem({
@@ -81,9 +104,12 @@ export function Sidebar({
   accounts = [],
   obligationsTotal = 0,
   currency = "RUB",
+  attentionCount = 0,
   activeUser,
   onLogout,
+  simpleMode = false,
 }: NavigationProps) {
+  const visiblePrimaryItems = simpleMode ? simplePrimaryItems : primaryItems;
   return (
     <aside className="sidebar">
       <a className="brand" href={routeHref("overview")} aria-label="Финансье, на главную">
@@ -92,12 +118,12 @@ export function Sidebar({
       </a>
 
       <nav className="sidebar-nav" aria-label="Основная навигация">
-        {primaryItems.map(({ key, label, icon }) => (
+        {visiblePrimaryItems.map(({ key, label, icon }) => (
           <NavItem route={key} label={label} icon={icon} activeRoute={activeRoute} key={key} />
         ))}
       </nav>
 
-      <div className="sidebar-section">
+      {!simpleMode ? <div className="sidebar-section">
         <span className="sidebar-label">Счета</span>
         <a className={activeRoute === "accounts" ? "account-nav account-nav-active" : "account-nav"} href={routeHref("accounts")}>
           <WalletCards size={16} strokeWidth={1.8} aria-hidden="true" />
@@ -115,11 +141,21 @@ export function Sidebar({
           <span>Обязательства</span>
           <strong>{formatMoney(obligationsTotal, currency)}</strong>
         </a>
-      </div>
+      </div> : null}
 
       <nav className="sidebar-footer-nav" aria-label="Контроль и настройки">
-        <NavItem route="reconciliation" label="Сверка" icon={ClipboardCheck} activeRoute={activeRoute} />
-        <NavItem route="settings" label="Настройки" icon={Settings} activeRoute={activeRoute} />
+        <a
+          className={activeRoute === "attention" ? "nav-link nav-link-active" : "nav-link"}
+          href={routeHref("attention")}
+          aria-current={activeRoute === "attention" ? "page" : undefined}
+        >
+          <BellRing size={18} strokeWidth={1.8} aria-hidden="true" />
+          <span>Контроль</span>
+          {attentionCount > 0 ? <small className="nav-attention-count">{attentionCount > 9 ? "9+" : attentionCount}</small> : null}
+        </a>
+        {!simpleMode ? <NavItem route="reconciliation" label="Автосверка" icon={ClipboardCheck} activeRoute={activeRoute} /> : null}
+        {!simpleMode ? <NavItem route="guide" label="Справочник" icon={BookOpen} activeRoute={activeRoute} /> : null}
+        <NavItem route="settings" label={simpleMode ? "Настроить" : "Настройки"} icon={Settings} activeRoute={activeRoute} />
       </nav>
 
       <div className="sidebar-profile">
@@ -140,10 +176,12 @@ export function Sidebar({
   );
 }
 
-export function BottomNavigation({ activeRoute, onNewOperation, onSearch }: NavigationProps) {
+export function BottomNavigation({ activeRoute, onNewOperation, onSearch, simpleMode = false }: NavigationProps) {
   const [moreOpen, setMoreOpen] = useState(false);
   const menuId = useId();
-  const isMoreRoute = mobileMoreItems.some(({ key }) => key === activeRoute) || activeRoute === "search";
+  const visibleMobilePrimaryItems = simpleMode ? simpleMobilePrimaryItems : mobilePrimaryItems;
+  const visibleMobileMoreItems = simpleMode ? simpleMobileMoreItems : mobileMoreItems;
+  const isMoreRoute = visibleMobileMoreItems.some(({ key }) => key === activeRoute) || (!simpleMode && activeRoute === "search");
 
   useEffect(() => {
     if (!moreOpen) return;
@@ -157,7 +195,7 @@ export function BottomNavigation({ activeRoute, onNewOperation, onSearch }: Navi
   return (
     <>
       <nav className="bottom-nav" aria-label="Мобильная навигация">
-        {mobilePrimaryItems.slice(0, 2).map(({ key, label, icon: Icon }) => {
+        {visibleMobilePrimaryItems.slice(0, 2).map(({ key, label, icon: Icon }) => {
           const current = activeRoute === key;
           return (
             <a
@@ -183,7 +221,7 @@ export function BottomNavigation({ activeRoute, onNewOperation, onSearch }: Navi
           </span>
           <span>Добавить</span>
         </button>
-        {mobilePrimaryItems.slice(2).map(({ key, label, icon: Icon }) => {
+        {visibleMobilePrimaryItems.slice(2).map(({ key, label, icon: Icon }) => {
           const current = activeRoute === key;
           return (
             <a
@@ -223,7 +261,7 @@ export function BottomNavigation({ activeRoute, onNewOperation, onSearch }: Navi
               </button>
             </header>
             <div className="mobile-nav-menu-grid">
-              <button
+              {!simpleMode ? <button
                 className="mobile-nav-menu-item"
                 type="button"
                 onClick={() => {
@@ -233,8 +271,8 @@ export function BottomNavigation({ activeRoute, onNewOperation, onSearch }: Navi
               >
                 <Search size={19} strokeWidth={1.8} aria-hidden="true" />
                 <span>Поиск</span>
-              </button>
-              {mobileMoreItems.map(({ key, label, icon: Icon }) => {
+              </button> : null}
+              {visibleMobileMoreItems.map(({ key, label, icon: Icon }) => {
                 const current = activeRoute === key;
                 return (
                   <a

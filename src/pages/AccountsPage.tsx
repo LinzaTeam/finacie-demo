@@ -27,7 +27,7 @@ export function AccountsPage({
 
   return (
     <main className="app-page" id="page-content" tabIndex={-1}>
-      <PageHeader title="Счета" subtitle="Владельцы, названия, иконки и точные остатки" periodLabel={data.meta.periodLabel}
+      <PageHeader title="Счета" subtitle="Владельцы, названия, иконки и точные остатки" periodLabel={data.meta.periodLabel} fx={data.meta.fx} attentionCount={data.attention.total}
         theme={theme} onThemeToggle={onThemeToggle} onNewOperation={onNewOperation} onSearch={onSearch}
         activeUser={activeUser} selectedPeriod={selectedPeriod} onPeriodChange={onPeriodChange} />
       <DataNotices source={source} fx={data.meta.fx} />

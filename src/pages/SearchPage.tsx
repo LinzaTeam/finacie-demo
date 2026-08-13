@@ -34,6 +34,8 @@ export function SearchPage({
         title="Поиск"
         subtitle="Операции и счета в одном месте"
         periodLabel={data.meta.periodLabel}
+        fx={data.meta.fx}
+        attentionCount={data.attention.total}
         theme={theme}
         onThemeToggle={onThemeToggle}
         onNewOperation={onNewOperation}

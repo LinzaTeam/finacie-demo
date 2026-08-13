@@ -1,21 +1,30 @@
 import type { CSSProperties, FormEvent } from "react";
-import { CalendarClock, CircleDollarSign, Pencil, Plus, Trash2, X } from "lucide-react";
+import { CalendarCheck, CalendarClock, CircleDollarSign, Pencil, Plus, Trash2, X } from "lucide-react";
 import { useState } from "react";
-import { deletePlannedPayment, savePlannedPayment } from "../api/customization";
+import {
+  deletePlannedPayment,
+  saveMonthlyCategoryBudgetPlan,
+  savePlannedPayment,
+  type MonthlyCategoryBudgetEntry,
+} from "../api/customization";
 import { DataNotices, PageHeader, SectionTitle } from "../components/PageChrome";
 import { formatMoney, formatShortDate } from "../lib/format";
 import type { DashboardData } from "../types";
 import type { FinancePageProps } from "./types";
 
 type Payment = DashboardData["plannedPayments"][number];
+type MonthlyBudget = DashboardData["monthlyCategoryBudgets"][number];
 
 export function PlanPage({
   data, source, theme, onThemeToggle, onNewOperation, onSearch, activeUser,
   selectedPeriod, onPeriodChange, activeUserKey, canWrite = true, onDataChange, onRefresh,
 }: FinancePageProps) {
   const [editing, setEditing] = useState<Payment | "new" | null>(null);
+  const [planning, setPlanning] = useState(false);
   const [saving, setSaving] = useState(false);
   const plannedExpense = data.plan?.expenseMinor ?? 0;
+  const mandatoryExpense = data.plan?.mandatoryExpenseMinor ?? plannedExpense;
+  const categoryBudgetExpense = data.plan?.categoryBudgetMinor ?? 0;
   const actualExpense = data.month.expenseMinor;
   const remaining = Math.max(0, plannedExpense - actualExpense);
   const usedShare = plannedExpense > 0 ? Math.min(1, actualExpense / plannedExpense) : 0;
@@ -49,12 +58,43 @@ export function PlanPage({
     });
   };
 
+  const updateDemoBudgetPlan = (personKey: string, entries: MonthlyCategoryBudgetEntry[]) => {
+    const person = data.people.find((item) => item.key === personKey);
+    const retained = data.monthlyCategoryBudgets.filter((item) => item.personKey !== personKey);
+    const updated: MonthlyBudget[] = entries
+      .filter((item) => item.amount_cents > 0)
+      .map((item) => ({
+        period: selectedPeriod,
+        personKey,
+        personName: person?.name || personKey,
+        categoryKey: item.category_key,
+        amountMinor: item.amount_cents,
+        currency: data.availableMoney.currency,
+      }));
+    const nextBudgets = [...retained, ...updated];
+    const nextCategoryBudget = nextBudgets.reduce((sum, item) => sum + item.amountMinor, 0);
+    onDataChange?.({
+      ...data,
+      monthlyCategoryBudgets: nextBudgets,
+      plan: {
+        budgetMinor: mandatoryExpense + nextCategoryBudget,
+        currency: data.availableMoney.currency,
+        incomeMinor: data.plan?.incomeMinor ?? 0,
+        expenseMinor: mandatoryExpense + nextCategoryBudget,
+        mandatoryExpenseMinor: mandatoryExpense,
+        categoryBudgetMinor: nextCategoryBudget,
+      },
+    });
+  };
+
   return (
     <main className="app-page" id="page-content" tabIndex={-1}>
       <PageHeader
         title="План"
         subtitle="Плановые поступления, расходы и ближайшие платежи"
         periodLabel={data.meta.periodLabel}
+        fx={data.meta.fx}
+        attentionCount={data.attention.total}
         theme={theme}
         onThemeToggle={onThemeToggle}
         onNewOperation={onNewOperation}
@@ -66,32 +106,42 @@ export function PlanPage({
       <DataNotices source={source} fx={data.meta.fx} />
 
       <div className="product-page-toolbar">
-        <div><strong>{data.plannedPayments.length} запланировано</strong><span>Повторяющиеся записи появятся в следующем месяце</span></div>
-        <button className="primary-button" type="button" onClick={() => setEditing("new")} disabled={!canWrite}>
-          <Plus size={17} aria-hidden="true" /> Платёж или доход
-        </button>
+        <div><strong>{payments.length} обязательных платежей</strong><span>Сначала обязательное, затем личные лимиты по категориям</span></div>
+        <div className="plan-toolbar-actions">
+          <button className="quiet-button" type="button" onClick={() => setEditing("new")} disabled={!canWrite}>
+            <Plus size={16} aria-hidden="true" /> Платёж или доход
+          </button>
+          <button className="primary-button" type="button" onClick={() => setPlanning(true)} disabled={!canWrite}>
+            <CalendarCheck size={17} aria-hidden="true" /> Запланировать месяц
+          </button>
+        </div>
       </div>
 
       <section className="plan-grid">
         <div className="panel plan-remaining">
-          <span>План расходов</span>
+          <span>План на месяц</span>
           <strong>{plannedExpense > 0 ? formatMoney(remaining, data.availableMoney.currency) : "Не задан"}</strong>
-          <p>{plannedExpense > 0 ? `Факт: ${formatMoney(actualExpense, data.month.currency)}` : "Добавьте регулярные и разовые расходы ниже"}</p>
+          <p>{plannedExpense > 0 ? `Обязательное: ${formatMoney(mandatoryExpense, data.month.currency)} · категории: ${formatMoney(categoryBudgetExpense, data.month.currency)}` : "Добавьте обязательные платежи и лимиты по категориям"}</p>
           <div className="budget-ring" style={ringStyle} aria-label={plannedExpense > 0 ? `Исполнено ${Math.round(usedShare * 100)} процентов плана расходов` : "План расходов не задан"}>
             <span><strong>{plannedExpense > 0 ? `${Math.round(usedShare * 100)}%` : "Нет"}</strong><small>{plannedExpense > 0 ? "исполнено" : "плана"}</small></span>
           </div>
         </div>
 
         <div className="panel category-plan">
-          <SectionTitle title="Факт по категориям" />
+          <SectionTitle title="План и факт по категориям" />
           <div className="category-plan-list">
             {data.categories.map((category, index) => {
-              const progress = Math.max(8, Math.round(category.share * 100));
+              const planned = data.monthlyCategoryBudgets
+                .filter((budget) => budget.categoryKey === category.id)
+                .reduce((sum, budget) => sum + budget.amountMinor, 0);
+              const progress = planned > 0
+                ? Math.max(4, Math.min(100, Math.round(category.amountMinor / planned * 100)))
+                : Math.max(4, Math.round(category.share * 100));
               return (
                 <div className="category-plan-row" key={category.id}>
                   <span className={`category-symbol category-symbol-${(index % 4) + 1}`} aria-hidden="true" />
                   <span className="category-plan-copy"><strong>{category.label}</strong><span className="category-line" aria-hidden="true"><i style={{ width: `${progress}%` }} /></span></span>
-                  <span className="category-plan-value"><strong>{formatMoney(category.amountMinor, category.currency)}</strong><small>за период</small></span>
+                  <span className="category-plan-value"><strong>{formatMoney(category.amountMinor, category.currency)}</strong><small>{planned > 0 ? `из ${formatMoney(planned, category.currency)}` : "без лимита"}</small></span>
                 </div>
               );
             })}
@@ -144,8 +194,95 @@ export function PlanPage({
           } finally { setSaving(false); }
         }}
       /> : null}
+      {planning ? <MonthlyPlanDialog
+        data={data}
+        period={selectedPeriod}
+        mandatoryExpense={mandatoryExpense}
+        saving={saving}
+        activeUserKey={activeUserKey || data.people[0]?.key || ""}
+        onClose={() => setPlanning(false)}
+        onSave={async (personKey, entries) => {
+          if (!canWrite) return;
+          setSaving(true);
+          try {
+            if (source === "demo") updateDemoBudgetPlan(personKey, entries);
+            else await saveMonthlyCategoryBudgetPlan(selectedPeriod, entries);
+            setPlanning(false);
+            if (source === "api") onRefresh?.();
+          } finally { setSaving(false); }
+        }}
+      /> : null}
     </main>
   );
+}
+
+function MonthlyPlanDialog({ data, period, mandatoryExpense, activeUserKey, saving, onClose, onSave }: {
+  data: DashboardData;
+  period: string;
+  mandatoryExpense: number;
+  activeUserKey: string;
+  saving: boolean;
+  onClose: () => void;
+  onSave: (personKey: string, entries: MonthlyCategoryBudgetEntry[]) => Promise<void>;
+}) {
+  const [personKey, setPersonKey] = useState(activeUserKey);
+  const [draft, setDraft] = useState<Record<string, Record<string, string>>>(() => Object.fromEntries(
+    data.people.map((person) => [person.key, Object.fromEntries(data.categories.map((category) => {
+      const amount = data.monthlyCategoryBudgets
+        .filter((budget) => budget.personKey === person.key && budget.categoryKey === category.id)
+        .reduce((sum, budget) => sum + budget.amountMinor, 0);
+      return [category.id, amount > 0 ? String(amount / 100) : ""];
+    }))]),
+  ));
+  const currentDraft = draft[personKey] ?? {};
+  const categoryTotal = Object.values(currentDraft).reduce((sum, value) => sum + parseBudgetAmount(value), 0);
+  const totalPlan = mandatoryExpense + data.monthlyCategoryBudgets
+    .filter((budget) => budget.personKey !== personKey)
+    .reduce((sum, budget) => sum + budget.amountMinor, 0) + categoryTotal;
+  const person = data.people.find((item) => item.key === personKey);
+
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
+    if (!personKey) return;
+    void onSave(personKey, data.categories.map((category) => ({
+      person_key: personKey,
+      category_key: category.id,
+      amount_cents: parseBudgetAmount(currentDraft[category.id] || ""),
+    })));
+  };
+
+  return <div className="sheet-layer" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
+    <form className="product-dialog monthly-plan-dialog" role="dialog" aria-modal="true" aria-labelledby="monthly-plan-title" onSubmit={submit} aria-label="Планирование месяца">
+      <header>
+        <div><h2 id="monthly-plan-title">Запланировать месяц</h2><p>Обязательные платежи уже учтены. Распределите оставшуюся часть по категориям для каждого участника.</p></div>
+        <button className="icon-button" type="button" onClick={onClose} aria-label="Закрыть"><X size={18} /></button>
+      </header>
+      <div className="monthly-plan-summary" aria-label="Сводка плана">
+        <span><small>Обязательное</small><strong>{formatMoney(mandatoryExpense, data.availableMoney.currency)}</strong></span>
+        <span><small>Лимиты {person?.name || "участника"}</small><strong>{formatMoney(categoryTotal, data.availableMoney.currency)}</strong></span>
+        <span><small>План семьи</small><strong>{formatMoney(totalPlan, data.availableMoney.currency)}</strong></span>
+      </div>
+      <fieldset className="subject-picker monthly-plan-person-picker">
+        <legend>Чей план</legend>
+        <div className="segmented-control">
+          {data.people.map((item) => <button className={item.key === personKey ? "segment-active" : ""} type="button" aria-pressed={item.key === personKey} onClick={() => setPersonKey(item.key)} key={item.key}>{item.name}</button>)}
+        </div>
+      </fieldset>
+      <div className="monthly-plan-copy"><strong>Лимиты категорий</strong><span>Введите сумму на весь месяц. Пустое поле означает, что лимит не задан.</span></div>
+      <div className="monthly-category-inputs">
+        {data.categories.map((category) => <label className="monthly-category-input" key={category.id}>
+          <span><i style={{ background: category.color }} aria-hidden="true" /><strong>{category.label}</strong><small>Факт: {formatMoney(category.amountMinor, category.currency)}</small></span>
+          <input aria-label={`Лимит ${category.label}`} inputMode="decimal" value={currentDraft[category.id] ?? ""} onChange={(event) => setDraft((current) => ({ ...current, [personKey]: { ...current[personKey], [category.id]: event.target.value } }))} placeholder="0" />
+        </label>)}
+      </div>
+      <footer><button className="quiet-button" type="button" onClick={onClose}>Отмена</button><button className="primary-button" type="submit" disabled={saving}>{saving ? "Сохраняю" : "Сохранить план"}</button></footer>
+    </form>
+  </div>;
+}
+
+function parseBudgetAmount(value: string): number {
+  const amount = Number(value.trim().replace(",", "."));
+  return Number.isFinite(amount) && amount > 0 ? Math.round(amount * 100) : 0;
 }
 
 function PaymentDialog({ payment, data, activeUserKey, saving, onClose, onSave, onDelete }: {

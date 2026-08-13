@@ -6,6 +6,15 @@ describe("dashboard normalization", () => {
     const result = normalizeDashboard({
       as_of: "2026-08-12",
       currency: "RUB",
+      exchange_rates: {
+        source: "ЦБ РФ",
+        effective_date: "2026-08-13",
+        fetched_at: "2026-08-12T21:00:00+00:00",
+        items: [
+          { currency: "USD", rub_per_unit: "82.9977" },
+          { currency: "EUR", rub_per_unit: "95.7793" },
+        ],
+      },
       totals: { available_cents: 75_000_00, partial: true },
       month: {
         start: "2026-08-01",
@@ -68,6 +77,15 @@ describe("dashboard normalization", () => {
     expect(result.obligations[0].debtMinor).toBe(40_000_00);
     expect(result.obligations[0].owner).toBe("Участник");
     expect(result.meta.fx).toMatchObject({ status: "partial", missingCurrencies: ["USD"] });
+    expect(result.meta.fx).toMatchObject({
+      source: "ЦБ РФ",
+      effectiveDate: "2026-08-13",
+    });
+    expect(result.meta.fx?.rates).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ currency: "USD", rubPerUnit: 82.9977 }),
+      ]),
+    );
     expect(result.transactions[0]).toMatchObject({
       title: "Обновление баланса",
       kind: "transfer",

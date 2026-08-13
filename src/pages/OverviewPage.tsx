@@ -2,14 +2,29 @@ import {
   ArrowRight,
   ArrowUpRight,
   Clock3,
+  Plus,
 } from "lucide-react";
+import { BalanceHistoryChart } from "../components/BalanceHistoryChart";
 import { AccountRow, TransactionRow } from "../components/FinanceRows";
 import { DataNotices, PageHeader, SectionTitle } from "../components/PageChrome";
 import { formatDateTime, formatMoney, formatShortDate, formatSignedMoney } from "../lib/format";
+import { deriveFinancialHealth } from "../lib/financialHealth";
 import { routeHref } from "../routes";
 import type { FinancePageProps } from "./types";
 
-export function OverviewPage({ data, source, theme, onThemeToggle, onNewOperation, onSearch, activeUser, selectedPeriod, onPeriodChange }: FinancePageProps) {
+export function OverviewPage({ data, source, theme, onThemeToggle, onNewOperation, onSearch, activeUser, selectedPeriod, onPeriodChange, simpleMode = false }: FinancePageProps) {
+  if (simpleMode) {
+    return <SimpleOverview
+      data={data}
+      theme={theme}
+      onThemeToggle={onThemeToggle}
+      onNewOperation={onNewOperation}
+      activeUser={activeUser}
+      selectedPeriod={selectedPeriod}
+      onPeriodChange={onPeriodChange}
+    />;
+  }
+
   const baseCurrency = data.availableMoney.currency;
   const nearestPayment = [...data.obligations]
     .filter((item) => item.dueDate && item.minimumPaymentMinor)
@@ -26,6 +41,7 @@ export function OverviewPage({ data, source, theme, onThemeToggle, onNewOperatio
   const monthEndLabel = new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "long" }).format(monthEnd);
   const plannedIncome = data.plan?.incomeMinor ?? 0;
   const plannedExpense = data.plan?.expenseMinor ?? 0;
+  const health = deriveFinancialHealth(data);
   const paymentTimeline = [
     ...data.plannedPayments.map((item) => ({ id: `plan-${item.id}`, name: item.name, dueDate: item.dueDate })),
     ...data.obligations.filter((item) => item.dueDate).map((item) => ({ id: `obligation-${item.id}`, name: item.name, dueDate: item.dueDate || "" })),
@@ -37,6 +53,8 @@ export function OverviewPage({ data, source, theme, onThemeToggle, onNewOperatio
         title="Сегодня"
         subtitle={`Данные на ${formatDateTime(data.meta.generatedAt)}`}
         periodLabel={data.meta.periodLabel}
+        fx={data.meta.fx}
+        attentionCount={data.attention.total}
         theme={theme}
         onThemeToggle={onThemeToggle}
         onNewOperation={onNewOperation}
@@ -64,6 +82,14 @@ export function OverviewPage({ data, source, theme, onThemeToggle, onNewOperatio
             <small>сегодня</small>
             <small>{monthEndLabel}</small>
           </div>
+          <BalanceHistoryChart
+            currentBalanceMinor={data.availableMoney.amountMinor}
+            currency={baseCurrency}
+            generatedAt={data.meta.generatedAt}
+            period={selectedPeriod}
+            periodLabel={data.meta.periodLabel}
+            points={data.cashflow}
+          />
         </div>
 
         <div className="pace-panel" aria-label="Дневной темп расходов">
@@ -73,6 +99,14 @@ export function OverviewPage({ data, source, theme, onThemeToggle, onNewOperatio
           <p>{dailyPace <= dailyAllowance ? "В ориентире" : "Темп выше ориентира"}. Осталось {remainingDays} дней.</p>
         </div>
       </section>
+
+      <a className={`health-glance health-glance-${health.score >= 7 ? "steady" : health.score >= 4 ? "attention" : "risk"}`} href={routeHref("health")}>
+        <span className="health-glance-emoji" aria-hidden="true">{health.emoji}</span>
+        <span><small>Финансовое здоровье</small><strong>{health.title}</strong></span>
+        <span className="health-glance-score"><b>{health.score}</b><small>из 10</small></span>
+        <span className="health-glance-copy">{health.summary}</span>
+        <ArrowRight size={19} strokeWidth={1.8} aria-hidden="true" />
+      </a>
 
       <section className="overview-grid">
         <div className="panel recent-panel">
@@ -126,6 +160,71 @@ export function OverviewPage({ data, source, theme, onThemeToggle, onNewOperatio
         </span>
         <ArrowRight size={19} strokeWidth={1.8} aria-hidden="true" />
       </a>
+    </main>
+  );
+}
+
+function SimpleOverview({
+  data,
+  theme,
+  onThemeToggle,
+  onNewOperation,
+  activeUser,
+  selectedPeriod,
+  onPeriodChange,
+}: Pick<FinancePageProps, "data" | "theme" | "onThemeToggle" | "onNewOperation" | "activeUser" | "selectedPeriod" | "onPeriodChange">) {
+  const currency = data.availableMoney.currency;
+  const net = data.month.incomeMinor - data.month.expenseMinor;
+
+  return (
+    <main className="app-page simple-mode-page" id="page-content" tabIndex={-1}>
+      <PageHeader
+        title="Сегодня"
+        subtitle="Баланс и последние записи"
+        periodLabel={data.meta.periodLabel}
+        attentionCount={data.attention.total}
+        theme={theme}
+        onThemeToggle={onThemeToggle}
+        onNewOperation={onNewOperation}
+        onSearch={() => undefined}
+        activeUser={activeUser}
+        selectedPeriod={selectedPeriod}
+        onPeriodChange={onPeriodChange}
+        simpleMode
+      />
+
+      <section className="simple-balance panel" aria-labelledby="simple-balance-title">
+        <div>
+          <span id="simple-balance-title">Доступно сейчас</span>
+          <strong>{formatMoney(data.availableMoney.amountMinor, currency)}</strong>
+          <p>{net >= 0 ? "За период поступило больше, чем потрачено" : "За период потрачено больше, чем поступило"}</p>
+        </div>
+        <button className="primary-button simple-add-button" type="button" onClick={onNewOperation}>
+          <Plus size={17} strokeWidth={2} aria-hidden="true" />
+          Добавить операцию
+        </button>
+      </section>
+
+      <section className="simple-totals" aria-label="Доходы и расходы за период">
+        <div>
+          <span>Доходы</span>
+          <strong className="amount-income">+{formatMoney(data.month.incomeMinor, data.month.currency)}</strong>
+        </div>
+        <div>
+          <span>Расходы</span>
+          <strong>{formatMoney(data.month.expenseMinor, data.month.currency)}</strong>
+        </div>
+      </section>
+
+      <section className="panel simple-recent-panel">
+        <SectionTitle
+          title="Последние операции"
+          action={<a className="text-link" href={routeHref("operations")}>Все <ArrowRight size={15} aria-hidden="true" /></a>}
+        />
+        <div className="finance-list">
+          {data.transactions.slice(0, 6).map((transaction) => <TransactionRow transaction={transaction} key={transaction.id} />)}
+        </div>
+      </section>
     </main>
   );
 }

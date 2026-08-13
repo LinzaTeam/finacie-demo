@@ -29,7 +29,7 @@ export function AnalyticsPage({
   }, [data, person, scope, selectedPeriod, source]);
 
   return <main className="app-page" id="page-content" tabIndex={-1}>
-    <PageHeader title="Аналитика" subtitle="Доходы и расходы вместе и по каждому участнику" periodLabel={data.meta.periodLabel}
+    <PageHeader title="Аналитика" subtitle="Доходы и расходы вместе и по каждому участнику" periodLabel={data.meta.periodLabel} fx={data.meta.fx} attentionCount={data.attention.total}
       theme={theme} onThemeToggle={onThemeToggle} onNewOperation={onNewOperation} onSearch={onSearch}
       activeUser={activeUser} selectedPeriod={selectedPeriod} onPeriodChange={onPeriodChange} />
     <DataNotices source={source} fx={data.meta.fx} />
@@ -38,7 +38,7 @@ export function AnalyticsPage({
         <button className={scope === "month" ? "segment-active" : ""} type="button" onClick={() => setScope("month")}>По дням</button>
         <button className={scope === "year" ? "segment-active" : ""} type="button" onClick={() => setScope("year")}>По месяцам</button>
       </div>
-      <label className="person-filter"><span>Участник</span><select value={person ?? "all"} onChange={(event) => setPerson(event.target.value === "all" ? null : event.target.value)}><option value="all">Все вместе</option>{data.people.map((item) => <option value={item.key} key={item.key}>{item.name}</option>)}</select></label>
+      <label className="person-filter"><span>Участник</span><select className="person-filter-select" value={person ?? "all"} onChange={(event) => setPerson(event.target.value === "all" ? null : event.target.value)}><option value="all">Все вместе</option>{data.people.map((item) => <option value={item.key} key={item.key}>{item.name}</option>)}</select></label>
     </section>
     {status === "loading" ? <div className="panel analytics-loading">Собираю аналитику…</div> : null}
     {status === "error" ? <div className="panel analytics-loading">Не удалось загрузить аналитику.</div> : null}

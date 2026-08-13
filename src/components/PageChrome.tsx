@@ -1,8 +1,10 @@
-import { Moon, Plus, Search, Sparkles, Sun, TriangleAlert, UserRound } from "lucide-react";
+import { BellRing, Bug, Moon, Plus, Search, Sparkles, Sun, TriangleAlert, UserRound } from "lucide-react";
+import { useBugReport } from "./BugReportDialog";
 import type { ReactNode } from "react";
 import type { DashboardSource } from "../api/dashboard";
 import type { DashboardData } from "../types";
 import { PeriodPicker } from "./PeriodPicker";
+import { routeHref } from "../routes";
 
 export type ThemeMode = "light" | "dark";
 
@@ -15,8 +17,11 @@ type PageHeaderProps = {
   onNewOperation: () => void;
   onSearch: () => void;
   activeUser: string;
+  fx?: DashboardData["meta"]["fx"];
   selectedPeriod: string;
   onPeriodChange: (period: string) => void;
+  attentionCount?: number;
+  simpleMode?: boolean;
 };
 
 export function PageHeader({
@@ -28,9 +33,13 @@ export function PageHeader({
   onNewOperation,
   onSearch,
   activeUser,
+  fx,
   selectedPeriod,
   onPeriodChange,
+  attentionCount = 0,
+  simpleMode = false,
 }: PageHeaderProps) {
+  const openBugReport = useBugReport();
   return (
     <header className="page-header">
       <div className="page-heading-copy">
@@ -42,7 +51,28 @@ export function PageHeader({
           <UserRound size={16} strokeWidth={1.8} aria-hidden="true" />
           {activeUser}
         </span>
-        <button
+        {!simpleMode && fx?.rates && fx.rates.length > 0 ? <CbrRateChip fx={fx} /> : null}
+        {!simpleMode && openBugReport ? (
+          <button
+            className="icon-button header-bug-button"
+            type="button"
+            onClick={openBugReport}
+            aria-label="Сообщить о проблеме"
+            title="Сообщить о проблеме"
+          >
+            <Bug size={18} strokeWidth={1.8} aria-hidden="true" />
+          </button>
+        ) : null}
+        <a
+          className="icon-button header-attention-button"
+          href={routeHref("attention")}
+          aria-label={attentionCount > 0 ? `Контроль: ${attentionCount} ожидают действия` : "Контроль и напоминания"}
+          title={attentionCount > 0 ? `Контроль: ${attentionCount}` : "Контроль и напоминания"}
+        >
+          <BellRing size={18} strokeWidth={1.8} aria-hidden="true" />
+          {attentionCount > 0 ? <span className="header-attention-count">{attentionCount > 9 ? "9+" : attentionCount}</span> : null}
+        </a>
+        {!simpleMode ? <button
           className="icon-button header-search-button"
           type="button"
           onClick={onSearch}
@@ -50,12 +80,12 @@ export function PageHeader({
           title="Поиск (⌘K / Ctrl+K)"
         >
           <Search size={18} strokeWidth={1.8} aria-hidden="true" />
-        </button>
+        </button> : null}
         <button className="primary-button" type="button" onClick={onNewOperation}>
           <Plus size={17} strokeWidth={2} aria-hidden="true" />
           Новая операция
         </button>
-        <PeriodPicker value={selectedPeriod} label={periodLabel} onChange={onPeriodChange} />
+        {!simpleMode ? <PeriodPicker value={selectedPeriod} label={periodLabel} onChange={onPeriodChange} /> : null}
         <button
           className="icon-button"
           type="button"
@@ -73,13 +103,29 @@ export function PageHeader({
   );
 }
 
+function CbrRateChip({ fx }: { fx: DashboardData["meta"]["fx"] }) {
+  const values = fx.rates?.filter((rate) => rate.currency === "USD" || rate.currency === "EUR") ?? [];
+  if (values.length === 0) return null;
+  const label = values.map((rate) => `${rate.currency} ${formatRate(rate.rubPerUnit)} ₽`).join(" · ");
+  return <span className="cbr-rate-chip" title={`${fx.source || "ЦБ РФ"}${fx.effectiveDate ? ` · курс на ${fx.effectiveDate}` : ""}`}>
+    <span>{fx.source || "ЦБ РФ"}</span>{label}
+  </span>;
+}
+
+function formatRate(value: number): string {
+  return new Intl.NumberFormat("ru-RU", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value);
+}
+
 export function DataNotices({
   source,
   fx,
+  simpleMode = false,
 }: {
   source: DashboardSource;
   fx: DashboardData["meta"]["fx"];
+  simpleMode?: boolean;
 }) {
+  if (simpleMode) return null;
   return (
     <div className="notice-stack">
       {source === "demo" ? (

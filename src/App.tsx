@@ -11,14 +11,18 @@ import {
 } from "./api/session";
 import { createTransaction } from "./api/transactions";
 import { BottomNavigation, Sidebar } from "./components/Navigation";
+import { BugReportDialog, BugReportProvider } from "./components/BugReportDialog";
 import { GlobalSearchDialog } from "./components/GlobalSearchDialog";
 import type { ThemeMode } from "./components/PageChrome";
 import { QuickAddSheet, type ParsedOperation } from "./components/QuickAddSheet";
 import { EmptyDashboard, ErrorDashboard, LoadingDashboard } from "./components/States";
 import { currentPeriodKey, dateForPeriod } from "./lib/period";
 import { AccountsPage } from "./pages/AccountsPage";
+import { AttentionPage } from "./pages/AttentionPage";
 import { AnalyticsPage } from "./pages/AnalyticsPage";
 import { GoalsPage } from "./pages/GoalsPage";
+import { GuidePage } from "./pages/GuidePage";
+import { FinancialHealthPage } from "./pages/FinancialHealthPage";
 import { LoginPage } from "./pages/LoginPage";
 import { ObligationsPage } from "./pages/ObligationsPage";
 import { OperationsPage } from "./pages/OperationsPage";
@@ -50,13 +54,19 @@ function initialTheme(): ThemeMode {
   return saved === "dark" ? "dark" : "light";
 }
 
+function initialSimpleMode(): boolean {
+  return window.localStorage.getItem("financier-interface-mode") === "simple";
+}
+
 export function App() {
   const [attempt, setAttempt] = useState(0);
   const [state, setState] = useState<LoadState>({ status: "loading" });
   const [route, setRoute] = useState<AppRoute>(() => routeFromHash(window.location.hash));
   const [theme, setTheme] = useState<ThemeMode>(initialTheme);
+  const [simpleMode, setSimpleMode] = useState(initialSimpleMode);
   const [quickAddOpen, setQuickAddOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [bugReportOpen, setBugReportOpen] = useState(false);
   const [selectedPeriod, setSelectedPeriod] = useState(currentPeriodKey);
 
   useEffect(() => {
@@ -87,7 +97,19 @@ export function App() {
   }, [theme]);
 
   useEffect(() => {
+    window.localStorage.setItem("financier-interface-mode", simpleMode ? "simple" : "full");
+  }, [simpleMode]);
+
+  useEffect(() => {
+    const simpleRoutes: AppRoute[] = ["overview", "operations", "attention", "settings"];
+    if (simpleMode && !simpleRoutes.includes(route)) {
+      window.location.hash = routeHref("overview");
+    }
+  }, [route, simpleMode]);
+
+  useEffect(() => {
     const onShortcut = (event: KeyboardEvent) => {
+      if (simpleMode) return;
       if ((event.metaKey || event.ctrlKey) && event.key.toLocaleLowerCase() === "k") {
         event.preventDefault();
         setQuickAddOpen(false);
@@ -96,7 +118,7 @@ export function App() {
     };
     window.addEventListener("keydown", onShortcut);
     return () => window.removeEventListener("keydown", onShortcut);
-  }, []);
+  }, [simpleMode]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -118,6 +140,16 @@ export function App() {
       })
       .catch(async (error: unknown) => {
         if (error instanceof DOMException && error.name === "AbortError") return;
+        if (import.meta.env.VITE_FINANCE_DEMO === "true") {
+          const { data, source } = await getDashboard(selectedPeriod, controller.signal);
+          setState({
+            status: "ready",
+            data,
+            source,
+            session: demoSession,
+          });
+          return;
+        }
         if (error instanceof SessionApiError && (error.status === 401 || error.status === 403)) {
           try {
             const config = await getAuthConfig(controller.signal);
@@ -147,15 +179,26 @@ export function App() {
   }, []);
   const closeQuickAdd = useCallback(() => setQuickAddOpen(false), []);
   const openSearch = useCallback(() => {
+    if (simpleMode) return;
     setQuickAddOpen(false);
     setSearchOpen(true);
-  }, []);
+  }, [simpleMode]);
   const closeSearch = useCallback(() => setSearchOpen(false), []);
   const changePeriod = useCallback((period: string) => {
     setQuickAddOpen(false);
     setSearchOpen(false);
+    setBugReportOpen(false);
     setSelectedPeriod(period);
   }, []);
+  const changeSimpleMode = useCallback((enabled: boolean) => {
+    setQuickAddOpen(false);
+    setSearchOpen(false);
+    setBugReportOpen(false);
+    setSimpleMode(enabled);
+    if (enabled && !["overview", "operations", "attention", "settings"].includes(route)) {
+      window.location.hash = routeHref("overview");
+    }
+  }, [route]);
 
   const logout = useCallback(async () => {
     try {
@@ -163,6 +206,7 @@ export function App() {
     } finally {
       setQuickAddOpen(false);
       setSearchOpen(false);
+      setBugReportOpen(false);
       setAttempt((value) => value + 1);
     }
   }, []);
@@ -265,6 +309,8 @@ export function App() {
     onPeriodChange: changePeriod,
     activeUserKey: ready.session?.user.key,
     canWrite: Boolean(ready.session?.capabilities.write),
+    simpleMode,
+    onSimpleModeChange: changeSimpleMode,
     onDataChange: (data: DashboardData) => setState((current) => (
       current.status === "ready" ? { ...current, data } : current
     )),
@@ -276,13 +322,16 @@ export function App() {
     switch (route) {
       case "operations": page = <OperationsPage {...pageProps} />; break;
       case "analytics": page = <AnalyticsPage {...pageProps} />; break;
+      case "health": page = <FinancialHealthPage {...pageProps} />; break;
       case "plan": page = <PlanPage {...pageProps} />; break;
       case "goals": page = <GoalsPage {...pageProps} />; break;
       case "search": page = <SearchPage {...pageProps} />; break;
       case "accounts": page = <AccountsPage {...pageProps} />; break;
       case "obligations": page = <ObligationsPage {...pageProps} />; break;
+      case "attention": page = <AttentionPage {...pageProps} />; break;
       case "reconciliation": page = <ReconciliationPage {...pageProps} />; break;
       case "settings": page = <SettingsPage {...pageProps} />; break;
+      case "guide": page = <GuidePage {...pageProps} />; break;
       default: page = <OverviewPage {...pageProps} />;
     }
   }
@@ -300,7 +349,8 @@ export function App() {
   }
 
   return (
-    <div className="app-shell">
+    <BugReportProvider onOpen={ready ? () => setBugReportOpen(true) : null}>
+      <div className="app-shell">
       <a
         href="#page-content"
         className="skip-link"
@@ -316,6 +366,8 @@ export function App() {
         accounts={ready?.data.accounts}
         obligationsTotal={obligationsTotal}
         currency={ready?.data.availableMoney.currency}
+        attentionCount={ready?.data.attention.total}
+        simpleMode={simpleMode}
         activeUser={ready?.session ? {
           name: activePerson?.name || ready.session.user.name,
           authMethod: ready.session.user.auth_method,
@@ -330,8 +382,8 @@ export function App() {
         {ready && isEmptyDashboard(ready.data) ? <EmptyDashboard /> : null}
         {ready && !isEmptyDashboard(ready.data) ? page : null}
       </div>
-      <BottomNavigation activeRoute={route} onNewOperation={openQuickAdd} onSearch={openSearch} />
-      {ready ? (
+      <BottomNavigation activeRoute={route} onNewOperation={openQuickAdd} onSearch={openSearch} simpleMode={simpleMode} />
+      {ready && !simpleMode ? (
         <GlobalSearchDialog open={searchOpen} data={ready.data} onClose={closeSearch} />
       ) : null}
       {ready ? (
@@ -349,6 +401,16 @@ export function App() {
           onAdd={addOperation}
         />
       ) : null}
-    </div>
+      {ready ? (
+        <BugReportDialog
+          open={bugReportOpen}
+          source={ready.source}
+          canWrite={Boolean(ready.session?.capabilities.write)}
+          onClose={() => setBugReportOpen(false)}
+          onSubmitted={() => window.dispatchEvent(new Event("finance:bug-report-created"))}
+        />
+      ) : null}
+      </div>
+    </BugReportProvider>
   );
 }

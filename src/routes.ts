@@ -2,12 +2,15 @@ export const routeDefinitions = [
   { key: "overview", label: "Сегодня", title: "Сегодня" },
   { key: "operations", label: "Операции", title: "Операции" },
   { key: "analytics", label: "Аналитика", title: "Аналитика" },
+  { key: "health", label: "Финздоровье", title: "Финансовое здоровье" },
   { key: "plan", label: "План", title: "План" },
   { key: "goals", label: "Цели", title: "Цели" },
   { key: "search", label: "Поиск", title: "Поиск" },
   { key: "accounts", label: "Счета", title: "Счета" },
   { key: "obligations", label: "Обязательства", title: "Обязательства" },
+  { key: "attention", label: "Контроль", title: "Контроль" },
   { key: "reconciliation", label: "Сверка", title: "Сверка" },
+  { key: "guide", label: "Справочник", title: "Справочник" },
   { key: "settings", label: "Настройки", title: "Настройки" },
 ] as const;
 

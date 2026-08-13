@@ -1,5 +1,6 @@
-import { Check, CheckCircle2, CircleAlert, UserRound } from "lucide-react";
+import { Check, CheckCircle2, ClipboardCheck, UserRound } from "lucide-react";
 import { DataNotices, PageHeader } from "../components/PageChrome";
+import { routeHref } from "../routes";
 import type { FinancePageProps } from "./types";
 
 export function ReconciliationPage({
@@ -13,14 +14,14 @@ export function ReconciliationPage({
   selectedPeriod,
   onPeriodChange,
 }: FinancePageProps) {
-  const complete = data.reconciliation.status === "complete";
-
   return (
     <main className="app-page" id="page-content" tabIndex={-1}>
       <PageHeader
-        title="Сверка"
-        subtitle="Общая проверка дней, дублей и остатков"
+        title="Автосверка"
+        subtitle="Расчёты строятся только по подтверждённым операциям"
         periodLabel={data.meta.periodLabel}
+        fx={data.meta.fx}
+        attentionCount={data.attention.total}
         theme={theme}
         onThemeToggle={onThemeToggle}
         onNewOperation={onNewOperation}
@@ -31,37 +32,37 @@ export function ReconciliationPage({
       />
       <DataNotices source={source} fx={data.meta.fx} />
 
-      <section className={complete ? "reconciliation-hero reconciliation-complete" : "reconciliation-hero reconciliation-attention"}>
-        <span className="reconciliation-icon" aria-hidden="true">
-          {complete ? <Check size={27} strokeWidth={2} /> : <CircleAlert size={27} strokeWidth={1.8} />}
-        </span>
-        <span>Сверка недели</span>
-        <h2>{complete ? "Всё сошлось" : "Есть что проверить"}</h2>
+      <section className="reconciliation-hero reconciliation-complete">
+        <span className="reconciliation-icon" aria-hidden="true"><Check size={27} strokeWidth={2} /></span>
+        <span>Автоматический режим</span>
+        <h2>Ручная сдача дня не нужна</h2>
         <p>{data.reconciliation.nextAction}</p>
       </section>
 
       <section className="reconciliation-grid">
         <div className="panel participant-panel">
-          <h2>Участники</h2>
-          {["Участник 1", "Участник 2"].map((name, index) => {
-            const done = index < data.reconciliation.completedParticipants;
-            return (
-              <div className="participant-row" key={name}>
-                <span aria-hidden="true"><UserRound size={18} strokeWidth={1.8} /></span>
-                <strong>{name}</strong>
-                <small>{done ? "Период подтверждён" : "Требуется проверка"}</small>
-                {done ? <CheckCircle2 size={19} strokeWidth={1.9} aria-label="Готово" /> : <CircleAlert size={19} strokeWidth={1.8} aria-label="Нужна проверка" />}
-              </div>
-            );
-          })}
+          <h2>Кто может вносить операции</h2>
+          {data.people.map((person) => (
+            <div className="participant-row" key={person.key}>
+              <span aria-hidden="true"><UserRound size={18} strokeWidth={1.8} /></span>
+              <strong>{person.name}</strong>
+              <small>Автор и участник операции фиксируются в журнале</small>
+              <CheckCircle2 size={19} strokeWidth={1.9} aria-label="Учёт включён" />
+            </div>
+          ))}
         </div>
 
         <dl className="panel reconciliation-stats">
           <div><dt>Период</dt><dd>{data.reconciliation.periodLabel}</dd></div>
-          <div><dt>Подтверждено</dt><dd>{data.reconciliation.completedParticipants} из {data.reconciliation.totalParticipants}</dd></div>
-          <div><dt>Открытые вопросы</dt><dd>{data.reconciliation.openIssues}</dd></div>
+          <div><dt>Правило</dt><dd>Только подтверждённое</dd></div>
+          <div><dt>Внимание</dt><dd>{data.attention.total}</dd></div>
         </dl>
       </section>
+
+      <a className="reconciliation-control-link" href={routeHref("attention")}>
+        <ClipboardCheck size={19} strokeWidth={1.8} aria-hidden="true" />
+        <span><strong>Открыть контроль</strong><small>Там подтверждаются дубли и отображаются ближайшие платежи.</small></span>
+      </a>
     </main>
   );
 }

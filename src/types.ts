@@ -16,6 +16,9 @@ export type DashboardData = {
       status: FxStatus;
       missingCurrencies: CurrencyCode[];
       updatedAt: string | null;
+      source?: string | null;
+      effectiveDate?: string | null;
+      rates?: Array<{ currency: CurrencyCode; rubPerUnit: number }>;
     };
   };
   availableMoney: Money & {
@@ -32,7 +35,17 @@ export type DashboardData = {
     currency: CurrencyCode;
     incomeMinor?: number;
     expenseMinor?: number;
+    mandatoryExpenseMinor?: number;
+    categoryBudgetMinor?: number;
   };
+  monthlyCategoryBudgets: Array<{
+    period: string;
+    personKey: string;
+    personName: string;
+    categoryKey: string;
+    amountMinor: number;
+    currency: CurrencyCode;
+  }>;
   cashflow: Array<{
     date: string;
     incomeMinor: number;
@@ -115,7 +128,7 @@ export type DashboardData = {
   }>;
   goals: Array<{
     id: string;
-    ownerKey: string;
+    ownerKey: string | null;
     ownerName: string;
     name: string;
     targetMinor: number;
@@ -125,6 +138,45 @@ export type DashboardData = {
     iconKey: string;
     color: string;
   }>;
+  attention: {
+    total: number;
+    duplicates: Array<{
+      token: string;
+      createdAt: string | null;
+      requesterKey: string;
+      requesterName: string;
+      reviewerKey: string;
+      reviewerName: string;
+      transaction: {
+        title: string;
+        detail: string | null;
+        kind: "income" | "expense";
+        amountMinor: number;
+        currency: CurrencyCode;
+        date: string | null;
+      };
+      existing: {
+        transactionId: string | null;
+        title: string;
+        amountMinor: number;
+        date: string | null;
+      };
+    }>;
+    reminders: Array<{
+      id: string;
+      kind: "planned_payment" | "obligation";
+      name: string;
+      detail: string;
+      dueDate: string;
+      amountMinor: number;
+      currency: CurrencyCode;
+      ownerKey: string;
+      ownerName: string;
+      operationKind: "income" | "expense";
+      accountKey: string | null;
+      categoryKey: string | null;
+    }>;
+  };
   reconciliation: {
     periodLabel: string;
     status: "complete" | "in_progress" | "attention";
@@ -143,11 +195,13 @@ export function isDashboardData(value: unknown): value is DashboardData {
       data.availableMoney &&
       data.month &&
       data.reconciliation &&
+      data.attention &&
       Array.isArray(data.cashflow) &&
       Array.isArray(data.categories) &&
       Array.isArray(data.accounts) &&
       Array.isArray(data.obligations) &&
       Array.isArray(data.plannedPayments) &&
+      Array.isArray(data.monthlyCategoryBudgets) &&
       Array.isArray(data.transactions) &&
       Array.isArray(data.people) &&
       Array.isArray(data.goals),

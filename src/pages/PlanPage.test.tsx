@@ -41,7 +41,10 @@ describe("plan page", () => {
     );
 
     expect(screen.getByText("План и факт по категориям")).toBeInTheDocument();
-    expect(screen.getAllByText(/из .*₽/).length).toBe(demoDashboard.categories.length);
+    expect(screen.getAllByText(/из .*₽/).length).toBe(demoDashboard.monthlyCategoryBudgets.length);
+    expect(screen.getAllByText("без лимита").length).toBe(
+      demoDashboard.categories.length - demoDashboard.monthlyCategoryBudgets.length,
+    );
     expect(screen.getByText("Облачный сервис")).toBeInTheDocument();
   });
 

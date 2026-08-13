@@ -47,7 +47,10 @@ export function ObligationsPage({
     <section className="obligations-hero">
       <span>Общая задолженность</span><strong>{formatMoney(total, data.availableMoney.currency)}</strong>
       <p>Обязательства не прибавляются к доступным деньгам. Для банковских карт баланс корректируется на странице счёта.</p>
-      <button className="primary-button" type="button" onClick={() => setEditing("new")} disabled={!canWrite}><Plus size={17} /> Новое обязательство</button>
+      <button className="primary-button" type="button" onClick={() => setEditing("new")} disabled={!canWrite}>
+        <Plus size={17} /> Новое обязательство
+      </button>
+      {!canWrite ? <small className="obligation-write-hint">Войдите через Telegram, чтобы добавлять и менять обязательства.</small> : null}
     </section>
 
     <section className="obligation-grid">
@@ -172,28 +175,42 @@ function ObligationDialog({ obligation, data, activeUserKey, saving, onClose, on
   const [recurrence, setRecurrence] = useState<"once" | "monthly">(obligation?.recurrence || "monthly");
   const [accountKey, setAccountKey] = useState(obligation?.accountKey ?? "");
   const [note, setNote] = useState(obligation?.note ?? "");
-  const submit = (event: FormEvent) => {
+  const [error, setError] = useState<string | null>(null);
+  const submit = async (event: FormEvent) => {
     event.preventDefault();
     const debtMinor = Math.round(Number(debt.replace(",", ".")) * 100);
     const minimumMinor = minimum.trim() ? Math.round(Number(minimum.replace(",", ".")) * 100) : null;
-    if (!name.trim() || !owner || !Number.isFinite(debtMinor) || debtMinor < 0 || (minimumMinor !== null && (!Number.isFinite(minimumMinor) || minimumMinor < 0)) || (minimumMinor && !dueDate)) return;
+    if (!name.trim() || !owner || !Number.isFinite(debtMinor) || debtMinor < 0 || (minimumMinor !== null && (!Number.isFinite(minimumMinor) || minimumMinor < 0))) {
+      setError("Проверьте название, владельца и суммы: они не могут быть отрицательными.");
+      return;
+    }
+    if (minimumMinor && !dueDate) {
+      setError("Укажите дату, если у обязательства есть регулярный платёж.");
+      return;
+    }
     const person = data.people.find((item) => item.key === owner);
-    void onSave({
-      id: obligation?.id ?? `manual:obligation-${Date.now()}`,
-      name: name.trim(), owner: person?.name || owner, ownerKey: owner, source: "manual", debtMinor,
-      currency: obligation?.currency || data.availableMoney.currency,
-      minimumPaymentMinor: minimumMinor, dueDate: dueDate || null, availableCreditMinor: null,
-      recurrence, accountKey: accountKey || null, note: note.trim() || null,
-    });
+    try {
+      setError(null);
+      await onSave({
+        id: obligation?.id ?? `manual:obligation-${Date.now()}`,
+        name: name.trim(), owner: person?.name || owner, ownerKey: owner, source: "manual", debtMinor,
+        currency: obligation?.currency || data.availableMoney.currency,
+        minimumPaymentMinor: minimumMinor, dueDate: dueDate || null, availableCreditMinor: null,
+        recurrence, accountKey: accountKey || null, note: note.trim() || null,
+      });
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : "Не удалось сохранить обязательство. Повторите попытку.");
+    }
   };
   return <div className="sheet-layer" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
     <form className="product-dialog" onSubmit={submit}>
-      <header><div><h2>{obligation ? "Настроить обязательство" : "Новое обязательство"}</h2><p>Долг можно вести отдельно от банковского счёта.</p></div><button className="icon-button" type="button" onClick={onClose} aria-label="Закрыть"><X size={18} /></button></header>
-      <label><span>Название</span><input value={name} onChange={(event) => setName(event.target.value)} placeholder="Например, аренда или рассрочка" autoFocus /></label>
-      <div className="form-split"><label><span>За кем</span><select value={owner} onChange={(event) => setOwner(event.target.value)}>{data.people.map((person) => <option value={person.key} key={person.key}>{person.name}</option>)}</select></label><label><span>Текущий долг, ₽</span><input inputMode="decimal" value={debt} onChange={(event) => setDebt(event.target.value)} /></label></div>
-      <div className="form-split"><label><span>Платёж, ₽</span><input inputMode="decimal" value={minimum} onChange={(event) => setMinimum(event.target.value)} placeholder="Необязательно" /></label><label><span>Дата платежа</span><input type="date" value={dueDate} onChange={(event) => setDueDate(event.target.value)} /></label></div>
+      <header><div><h2>{obligation ? "Настроить обязательство" : "Новое обязательство"}</h2><p>Долг ведётся отдельно от доступных денег и не меняет баланс счёта.</p></div><button className="icon-button" type="button" onClick={onClose} aria-label="Закрыть"><X size={18} /></button></header>
+      <label><span>Название</span><input value={name} onChange={(event) => setName(event.target.value)} placeholder="Например, аренда или рассрочка" required autoFocus /></label>
+      <div className="form-split"><label><span>Чьё обязательство</span><select aria-label="Чьё обязательство" value={owner} onChange={(event) => { setOwner(event.target.value); setError(null); }} required>{data.people.map((person) => <option value={person.key} key={person.key}>{person.name}</option>)}</select><small className="form-field-note">Автором записи останетесь вы.</small></label><label><span>Текущий долг, ₽</span><input inputMode="decimal" value={debt} onChange={(event) => { setDebt(event.target.value); setError(null); }} aria-invalid={error ? true : undefined} /></label></div>
+      <div className="form-split"><label><span>Платёж, ₽</span><input inputMode="decimal" value={minimum} onChange={(event) => { setMinimum(event.target.value); setError(null); }} placeholder="Необязательно" /></label><label><span>Дата платежа</span><input type="date" value={dueDate} onChange={(event) => { setDueDate(event.target.value); setError(null); }} /></label></div>
       <div className="form-split"><label><span>Повтор</span><select value={recurrence} onChange={(event) => setRecurrence(event.target.value as "once" | "monthly")}><option value="monthly">Каждый месяц</option><option value="once">Один раз</option></select></label><label><span>Связанный счёт</span><select value={accountKey} onChange={(event) => setAccountKey(event.target.value)}><option value="">Не выбран</option>{data.accounts.map((account) => <option value={account.id} key={account.id}>{account.name}</option>)}</select></label></div>
       <label><span>Комментарий</span><input value={note} onChange={(event) => setNote(event.target.value)} placeholder="Необязательно" /></label>
+      {error ? <p className="product-dialog-error" role="alert">{error}</p> : null}
       <footer>{onDelete ? <button className="danger-button" type="button" onClick={() => void onDelete()} disabled={saving}><Trash2 size={16} />Удалить</button> : <span />}<button className="primary-button" type="submit" disabled={saving}>{saving ? "Сохраняю" : "Сохранить"}</button></footer>
     </form>
   </div>;

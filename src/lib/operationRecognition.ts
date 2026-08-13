@@ -58,21 +58,23 @@ const FILLER = new Set([
 ]);
 const GENERIC_ACCOUNT_WORDS = new Set(["bank", "банк", "account", "счет", "основной"]);
 const CATEGORY_ALIASES: Record<string, string[]> = {
-  groceries: ["groceries", "продукты", "продукт", "магазин", "азбука", "перекресток"],
-  coffee: ["coffee", "кофе", "кофейня", "дринкит"],
-  cafe_delivery: ["cafe_delivery", "кафе", "ресторан", "доставка"],
-  transport: ["transport", "транспорт", "метро", "такси", "бензин"],
-  home: ["home", "дом", "мебель", "ремонт", "быт"],
-  health: ["health", "здоровье", "аптека", "врач", "лекарства"],
+  groceries: ["groceries", "продукты", "продукт", "магазин", "супермаркет", "азбука", "перекресток", "лента", "магнит", "пятерочка", "красное белое", "spar", "самокат", "авокадо"],
+  coffee: ["coffee", "кофе", "кофейня", "дринкит", "ddrinkit"],
+  cafe_delivery: ["cafe_delivery", "кафе", "ресторан", "доставка", "фастфуд", "еда", "бургер", "subway", "cofix"],
+  transport: ["transport", "транспорт", "метро", "такси", "бензин", "парковка", "автобус", "каршеринг", "делимобиль"],
+  transfers: ["transfers", "перевод", "переводы"],
+  cats: ["cats", "коты", "кот", "кошка", "кошки", "корм", "ветеринар", "ветклиника", "зоомагазин", "petshop"],
+  home: ["home", "дом", "мебель", "ремонт", "быт", "жкх"],
+  health: ["health", "здоровье", "аптека", "врач", "лекарства", "медицина", "стоматолог"],
   beauty_care: ["beauty_care", "красота", "уход", "салон", "маникюр", "педикюр", "косметика", "брови", "ресницы"],
-  clothes: ["clothes", "одежда", "обувь", "кроссовки"],
-  entertainment: ["entertainment", "развлечения", "кино", "театр", "концерт"],
-  gifts: ["gifts", "подарок", "подарки"],
-  business: ["business", "бизнес", "реклама", "подрядчик"],
-  subscriptions: ["subscriptions", "подписка", "подписки"],
-  services: ["services", "сервис", "сервер", "хостинг", "tilda", "timeweb"],
-  tobacco: ["tobacco", "табак", "сигареты", "вейп"],
-  other: ["other", "другое"],
+  clothes: ["clothes", "одежда", "обувь", "кроссовки", "lamoda"],
+  entertainment: ["entertainment", "развлечения", "кино", "театр", "концерт", "игры"],
+  gifts: ["gifts", "подарок", "подарки", "цветы"],
+  business: ["business", "бизнес", "реклама", "подрядчик", "налоги"],
+  subscriptions: ["subscriptions", "подписка", "подписки", "подписки ai", "ivi", "кинопоиск", "яндекс плюс", "telegram"],
+  services: ["services", "сервис", "сервер", "хостинг", "tilda", "timeweb", "zapmail", "coldyai"],
+  tobacco: ["tobacco", "табак", "сигарета", "сигареты", "сиги", "никотин", "вейп", "одноразка"],
+  other: ["other", "другое", "прочее"],
 };
 
 function normalize(value: string): string {

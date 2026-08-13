@@ -82,14 +82,6 @@ export function OverviewPage({ data, source, theme, onThemeToggle, onNewOperatio
             <small>сегодня</small>
             <small>{monthEndLabel}</small>
           </div>
-          <BalanceHistoryChart
-            currentBalanceMinor={data.availableMoney.amountMinor}
-            currency={baseCurrency}
-            generatedAt={data.meta.generatedAt}
-            period={selectedPeriod}
-            periodLabel={data.meta.periodLabel}
-            points={data.cashflow}
-          />
         </div>
 
         <div className="pace-panel" aria-label="Дневной темп расходов">
@@ -98,6 +90,27 @@ export function OverviewPage({ data, source, theme, onThemeToggle, onNewOperatio
           <div className="pace-line" aria-hidden="true"><i style={{ width: `${paceShare}%` }} /></div>
           <p>{dailyPace <= dailyAllowance ? "В ориентире" : "Темп выше ориентира"}. Осталось {remainingDays} дней.</p>
         </div>
+      </section>
+
+      <section className="balance-history-strip" aria-labelledby="balance-history-heading">
+        <div className="balance-history-intro">
+          <div>
+            <h2 id="balance-history-heading">Динамика баланса</h2>
+            <p>Проведённые операции за {data.meta.periodLabel.toLowerCase()}</p>
+          </div>
+          <span>
+            Сейчас
+            <strong>{formatMoney(data.availableMoney.amountMinor, baseCurrency)}</strong>
+          </span>
+        </div>
+        <BalanceHistoryChart
+          currentBalanceMinor={data.availableMoney.amountMinor}
+          currency={baseCurrency}
+          generatedAt={data.meta.generatedAt}
+          period={selectedPeriod}
+          periodLabel={data.meta.periodLabel}
+          points={data.cashflow}
+        />
       </section>
 
       <a className={`health-glance health-glance-${health.score >= 7 ? "steady" : health.score >= 4 ? "attention" : "risk"}`} href={routeHref("health")}>

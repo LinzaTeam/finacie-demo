@@ -86,6 +86,13 @@ describe("natural operation input", () => {
     });
   });
 
+  it("recognizes categories from the full bot catalogue", () => {
+    expect(parseOperation("такси 420 с Т-Банк", accounts)).toMatchObject({ categoryKey: "transport" });
+    expect(parseOperation("Lamoda 350 с Т-Банк", accounts)).toMatchObject({ categoryKey: "clothes" });
+    expect(parseOperation("подписка Иви 299 с Т-Банк", accounts)).toMatchObject({ categoryKey: "subscriptions" });
+    expect(parseOperation("корм для котов 750 с Т-Банк", accounts)).toMatchObject({ categoryKey: "cats" });
+  });
+
   it("accepts tags and explicit keys in any order", () => {
     expect(parseOperation("category:coffee from:tbank 420 #expense", accounts)).toMatchObject({
       transactionKind: "card_payment",

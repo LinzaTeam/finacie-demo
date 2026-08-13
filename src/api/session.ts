@@ -64,10 +64,16 @@ async function readSession(signal?: AbortSignal): Promise<WebSession> {
     signal,
   });
   if (!response.ok) throw new SessionApiError(response.status, `Session API returned ${response.status}`);
-  const payload = await response.json() as Omit<WebSession, "csrfToken">;
+  const payload = await response.json() as Omit<WebSession, "csrfToken"> & {
+    csrf_token?: string | null;
+  };
+  const { csrf_token: restoredCsrfToken, ...session } = payload;
+  if (restoredCsrfToken) {
+    window.sessionStorage.setItem(CSRF_STORAGE_KEY, restoredCsrfToken);
+  }
   return {
-    ...payload,
-    csrfToken: window.sessionStorage.getItem(CSRF_STORAGE_KEY),
+    ...session,
+    csrfToken: restoredCsrfToken || window.sessionStorage.getItem(CSRF_STORAGE_KEY),
   };
 }
 

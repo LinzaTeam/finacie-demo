@@ -69,6 +69,24 @@ describe("obligations page", () => {
     }));
   });
 
+  it("lets an authenticated participant record an obligation for the other participant", () => {
+    const onDataChange = vi.fn();
+    render(<ObligationsPage {...pageProps()} onDataChange={onDataChange} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Новое обязательство" }));
+    fireEvent.change(screen.getByLabelText("Название"), { target: { value: "Рассрочка за ноутбук" } });
+    fireEvent.change(screen.getByLabelText("Чьё обязательство"), { target: { value: "person-2" } });
+    fireEvent.click(screen.getByRole("button", { name: "Сохранить" }));
+
+    expect(onDataChange).toHaveBeenCalledWith(expect.objectContaining({
+      obligations: expect.arrayContaining([expect.objectContaining({
+        name: "Рассрочка за ноутбук",
+        owner: "Участник 2",
+        ownerKey: "person-2",
+      })]),
+    }));
+  });
+
   it("sends credit-card management to the linked account and disables writes in read-only mode", () => {
     render(<ObligationsPage {...pageProps(false, "api")} />);
 

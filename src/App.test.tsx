@@ -12,10 +12,12 @@ vi.mock("./api/session", async (importOriginal) => {
     pollBrowserLogin: vi.fn(),
   };
 });
+vi.mock("./api/transactions", () => ({ createTransaction: vi.fn() }));
 
 import { App } from "./App";
 import { getDashboard } from "./api/dashboard";
 import { demoSession, getAuthConfig, getOrCreateSession, startBrowserLogin } from "./api/session";
+import { createTransaction } from "./api/transactions";
 import { demoDashboard } from "./data/demo";
 
 describe("app overlays", () => {
@@ -87,6 +89,21 @@ describe("app overlays", () => {
       expect(screen.queryByRole("dialog", { name: "Найдите что угодно" })).not.toBeInTheDocument();
       expect(document.body.style.overflow).toBe("");
     });
+  });
+
+  it("keeps operation writes inside the public demo session", async () => {
+    render(<App />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Новая операция" }));
+    fireEvent.change(screen.getByLabelText("Напишите как есть"), {
+      target: { value: "Кофе 420 с Т-Банк" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Готово" }));
+
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog", { name: "Новая операция" })).not.toBeInTheDocument();
+    });
+    expect(createTransaction).not.toHaveBeenCalled();
   });
 
   it("opens the new-goal dialog from the goals grid card", async () => {

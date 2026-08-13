@@ -1,5 +1,6 @@
-import { useId } from "react";
-import { formatMoney } from "../lib/format";
+import { useId, useState } from "react";
+import type { CSSProperties } from "react";
+import { formatMoney, formatSignedMoney } from "../lib/format";
 import type { DashboardData } from "../types";
 
 type BalanceHistoryChartProps = {
@@ -14,12 +15,13 @@ type BalanceHistoryChartProps = {
 type BalancePoint = {
   date: string;
   balanceMinor: number;
+  changeMinor: number;
 };
 
 const WIDTH = 680;
 const HEIGHT = 176;
-const PLOT_LEFT = 54;
-const PLOT_RIGHT = 10;
+const PLOT_LEFT = 72;
+const PLOT_RIGHT = 12;
 const PLOT_TOP = 14;
 const PLOT_BOTTOM = 30;
 
@@ -79,12 +81,14 @@ export function buildBalanceSeries(
 
   return Array.from({ length: asOfDay }, (_, index) => {
     const date = `${activePeriod}-${String(index + 1).padStart(2, "0")}`;
-    balance += netByDate.get(date) ?? 0;
-    return { date, balanceMinor: balance };
+    const changeMinor = netByDate.get(date) ?? 0;
+    balance += changeMinor;
+    return { date, balanceMinor: balance, changeMinor };
   });
 }
 
 export function BalanceHistoryChart({ currentBalanceMinor, currency, generatedAt, period, periodLabel, points }: BalanceHistoryChartProps) {
+  const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const titleId = useId();
   const descriptionId = useId();
   const gradientId = useId();
@@ -102,12 +106,61 @@ export function BalanceHistoryChart({ currentBalanceMinor, currency, generatedAt
   const highest = Math.max(...series.map((point) => point.balanceMinor));
   const labelIndexes = Array.from(new Set([0, Math.round((series.length - 1) / 2), series.length - 1]));
   const currentDay = new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "short" }).format(new Date(`${current.date}T12:00:00+03:00`));
+  const activePoint = activeIndex === null ? null : series[activeIndex];
+  const activeX = activeIndex === null ? 0 : toX(activeIndex);
+  const activeY = activePoint === null ? 0 : toY(activePoint.balanceMinor);
+  const activeDate = activePoint === null ? "" : new Intl.DateTimeFormat("ru-RU", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).format(new Date(`${activePoint.date}T12:00:00+03:00`));
+  const activeChange = activePoint?.changeMinor ?? 0;
+  const activeChangeLabel = activeChange === 0
+    ? "Без изменений за день"
+    : `${formatSignedMoney(activeChange, currency)} за день`;
+  const activePointLabel = activePoint === null
+    ? ""
+    : `${activeDate}: ${formatMoney(activePoint.balanceMinor, currency)}. ${activeChangeLabel}.`;
+  const tooltipStyle = activePoint === null ? undefined : ({
+    "--balance-tooltip-x": `${(activeX / WIDTH) * 100}%`,
+    "--balance-tooltip-y": `${(activeY / HEIGHT) * 100}%`,
+  } as CSSProperties);
+
+  const selectNearestPoint = (clientX: number, bounds: DOMRect) => {
+    if (bounds.width <= 0) return;
+    const svgX = ((clientX - bounds.left) / bounds.width) * WIDTH;
+    const ratio = Math.min(1, Math.max(0, (svgX - PLOT_LEFT) / plotWidth));
+    setActiveIndex(Math.round(ratio * Math.max(series.length - 1, 0)));
+  };
 
   return (
     <figure className="balance-history-chart">
-      <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} preserveAspectRatio="none" role="img" aria-labelledby={`${titleId} ${descriptionId}`}>
+      <svg
+        viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
+        preserveAspectRatio="none"
+        role="img"
+        aria-labelledby={`${titleId} ${descriptionId}`}
+        tabIndex={0}
+        onBlur={() => setActiveIndex(null)}
+        onFocus={() => setActiveIndex(series.length - 1)}
+        onKeyDown={(event) => {
+          if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+          event.preventDefault();
+          setActiveIndex((index) => {
+            if (event.key === "Home") return 0;
+            if (event.key === "End") return series.length - 1;
+            const currentIndex = index ?? series.length - 1;
+            return event.key === "ArrowLeft"
+              ? Math.max(0, currentIndex - 1)
+              : Math.min(series.length - 1, currentIndex + 1);
+          });
+        }}
+        onPointerDown={(event) => selectNearestPoint(event.clientX, event.currentTarget.getBoundingClientRect())}
+        onPointerLeave={() => setActiveIndex(null)}
+        onPointerMove={(event) => selectNearestPoint(event.clientX, event.currentTarget.getBoundingClientRect())}
+      >
         <title id={titleId}>Баланс по дням за {periodLabel}</title>
-        <desc id={descriptionId}>Баланс изменился с {formatMoney(series[0].balanceMinor, currency)} до {formatMoney(currentBalanceMinor, currency)} на {currentDay}. Минимум {formatMoney(lowest, currency)}, максимум {formatMoney(highest, currency)}. Линия строится по проведённым операциям выбранного периода.</desc>
+        <desc id={descriptionId}>Баланс изменился с {formatMoney(series[0].balanceMinor, currency)} до {formatMoney(currentBalanceMinor, currency)} на {currentDay}. Минимум {formatMoney(lowest, currency)}, максимум {formatMoney(highest, currency)}. Линия строится по проведённым операциям выбранного периода. Наведите указатель на график или используйте стрелки влево и вправо, чтобы посмотреть баланс по дням.</desc>
         <defs>
           <linearGradient id={gradientId} x1="0" x2="0" y1="0" y2="1">
             <stop offset="0%" stopColor="var(--sky)" stopOpacity="0.3" />
@@ -123,6 +176,12 @@ export function BalanceHistoryChart({ currentBalanceMinor, currency, generatedAt
         ))}
         <path className="balance-chart-area" d={areaPath} fill={`url(#${gradientId})`} />
         <path className="balance-chart-line" d={linePath} />
+        {activePoint ? (
+          <>
+            <line className="balance-chart-active-line" x1={activeX} x2={activeX} y1={PLOT_TOP} y2={HEIGHT - PLOT_BOTTOM} />
+            <circle className="balance-chart-active-point" cx={activeX} cy={activeY} r="4.4" />
+          </>
+        ) : null}
         <line className="balance-chart-now-line" x1={toX(series.length - 1)} x2={toX(series.length - 1)} y1={PLOT_TOP} y2={HEIGHT - PLOT_BOTTOM} />
         <circle className="balance-chart-current-point" cx={toX(series.length - 1)} cy={toY(current.balanceMinor)} r="4.4" />
         <text className="balance-chart-now-label" x={toX(series.length - 1)} y={PLOT_TOP + 9} textAnchor="end">сейчас</text>
@@ -132,6 +191,20 @@ export function BalanceHistoryChart({ currentBalanceMinor, currency, generatedAt
           </text>
         ))}
       </svg>
+      {activePoint ? (
+        <div
+          className="balance-chart-tooltip"
+          data-align={activeIndex === 0 ? "start" : activeIndex === series.length - 1 ? "end" : "center"}
+          data-placement={activeY < PLOT_TOP + 48 ? "below" : "above"}
+          style={tooltipStyle}
+          aria-hidden="true"
+        >
+          <time dateTime={activePoint.date}>{activeDate}</time>
+          <strong>{formatMoney(activePoint.balanceMinor, currency)}</strong>
+          <span className={activeChange > 0 ? "positive" : activeChange < 0 ? "negative" : "neutral"}>{activeChangeLabel}</span>
+        </div>
+      ) : null}
+      <span className="sr-only" aria-live="polite">{activePointLabel}</span>
     </figure>
   );
 }

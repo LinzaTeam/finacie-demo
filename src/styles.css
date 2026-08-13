@@ -839,6 +839,7 @@ html[data-theme="dark"] .balance-hero {
 }
 
 .balance-history-chart {
+  position: relative;
   min-width: 0;
   margin: 0;
   color: var(--text-tertiary);
@@ -850,6 +851,14 @@ html[data-theme="dark"] .balance-hero {
   height: auto;
   aspect-ratio: 680 / 176;
   overflow: hidden;
+  cursor: crosshair;
+  touch-action: pan-y;
+  border-radius: 8px;
+}
+
+.balance-history-chart svg:focus-visible {
+  outline: 2px solid var(--sky);
+  outline-offset: 3px;
 }
 
 .balance-chart-axis-title,
@@ -886,6 +895,19 @@ html[data-theme="dark"] .balance-hero {
   stroke-width: 2.2;
 }
 
+.balance-chart-active-line {
+  stroke: var(--primary);
+  stroke-dasharray: 2 3;
+  stroke-width: 1;
+  opacity: 0.72;
+}
+
+.balance-chart-active-point {
+  fill: var(--surface-elevated);
+  stroke: var(--primary);
+  stroke-width: 2.4;
+}
+
 .balance-chart-now-line {
   stroke: var(--primary);
   stroke-dasharray: 2 4;
@@ -896,6 +918,59 @@ html[data-theme="dark"] .balance-hero {
   fill: var(--lemon);
   stroke: var(--primary);
   stroke-width: 2;
+}
+
+.balance-chart-tooltip {
+  position: absolute;
+  z-index: 20;
+  top: var(--balance-tooltip-y);
+  left: var(--balance-tooltip-x);
+  display: grid;
+  min-width: 134px;
+  max-width: min(180px, calc(100% - 12px));
+  padding: 9px 11px 10px;
+  gap: 1px;
+  border-radius: 10px;
+  color: var(--ivory);
+  background: var(--charcoal);
+  box-shadow: 0 4px 8px rgb(19 20 23 / 0.24);
+  pointer-events: none;
+  transform: translate(-50%, calc(-100% - 9px));
+}
+
+.balance-chart-tooltip[data-align="start"] { transform: translate(0, calc(-100% - 9px)); }
+.balance-chart-tooltip[data-align="end"] { transform: translate(-100%, calc(-100% - 9px)); }
+.balance-chart-tooltip[data-placement="below"] { transform: translate(-50%, 9px); }
+.balance-chart-tooltip[data-placement="below"][data-align="start"] { transform: translate(0, 9px); }
+.balance-chart-tooltip[data-placement="below"][data-align="end"] { transform: translate(-100%, 9px); }
+
+.balance-chart-tooltip time {
+  color: rgb(255 253 245 / 0.72);
+  font-size: 9px;
+  font-weight: 590;
+}
+
+.balance-chart-tooltip strong {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.015em;
+  white-space: nowrap;
+}
+
+.balance-chart-tooltip span {
+  margin-top: 2px;
+  font-size: 9px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.balance-chart-tooltip span.positive { color: var(--lemon); }
+.balance-chart-tooltip span.negative { color: #ffafb5; }
+.balance-chart-tooltip span.neutral { color: rgb(255 253 245 / 0.72); }
+
+html[data-theme="dark"] .balance-chart-tooltip {
+  background: #202126;
+  box-shadow: 0 4px 8px rgb(8 9 11 / 0.42);
 }
 
 html[data-theme="dark"] .balance-history-chart {

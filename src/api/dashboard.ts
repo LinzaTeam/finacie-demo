@@ -396,9 +396,7 @@ export function normalizeDashboard(raw: RawDashboard): DashboardData {
       color: goal.color,
     })),
     attention: {
-      total: raw.attention?.total_count ?? (
-        (raw.attention?.duplicate_reviews?.length ?? 0) + (raw.attention?.reminders?.length ?? 0)
-      ),
+      total: raw.attention?.duplicate_reviews?.length ?? 0,
       duplicates: (raw.attention?.duplicate_reviews ?? []).map((review) => ({
         token: review.token,
         createdAt: review.created_at ?? null,
@@ -441,7 +439,7 @@ export function normalizeDashboard(raw: RawDashboard): DashboardData {
       status: "complete",
       completedParticipants: raw.people?.length ?? 0,
       totalParticipants: raw.people?.length ?? 0,
-      openIssues: raw.attention?.total_count ?? 0,
+      openIssues: raw.attention?.duplicate_reviews?.length ?? 0,
       nextAction: raw.reconciliation.automatic
         ? `Учтено подтверждённых операций за 7 дней: ${raw.reconciliation.confirmed_transaction_count ?? 0}.`
         : "В итог попадают только подтверждённые операции.",

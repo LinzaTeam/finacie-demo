@@ -65,6 +65,24 @@ describe("dashboard normalization", () => {
           currency: "RUB",
         },
       ],
+      attention: {
+        total_count: 1,
+        duplicate_reviews: [],
+        reminders: [{
+          id: "planned-1",
+          kind: "planned_payment",
+          name: "Подписка",
+          detail: "Плановый платёж",
+          due_date: "2026-08-20",
+          amount_cents: 499_00,
+          currency: "RUB",
+          owner_key: "participant_1",
+          owner_name: "Участник",
+          operation_kind: "expense",
+          account_key: null,
+          category_key: null,
+        }],
+      },
       reconciliation: {
         period_start: "2026-08-06",
         period_end: "2026-08-12",
@@ -90,5 +108,7 @@ describe("dashboard normalization", () => {
       title: "Обновление баланса",
       kind: "transfer",
     });
+    expect(result.attention).toMatchObject({ total: 0, reminders: expect.any(Array) });
+    expect(result.reconciliation.openIssues).toBe(0);
   });
 });

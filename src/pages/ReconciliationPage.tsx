@@ -61,7 +61,7 @@ export function ReconciliationPage({
 
       <a className="reconciliation-control-link" href={routeHref("attention")}>
         <ClipboardCheck size={19} strokeWidth={1.8} aria-hidden="true" />
-        <span><strong>Открыть контроль</strong><small>Там подтверждаются дубли и отображаются ближайшие платежи.</small></span>
+        <span><strong>Открыть контроль</strong><small>Там подтверждаются подозрительные дубли операций.</small></span>
       </a>
     </main>
   );

@@ -1,4 +1,4 @@
-import { BellRing, CalendarClock, Check, CopyCheck, Plus, ShieldAlert, X } from "lucide-react";
+import { BellRing, Check, CopyCheck, X } from "lucide-react";
 import { useState } from "react";
 import { resolveDuplicateReview } from "../api/attention";
 import { DataNotices, PageHeader, SectionTitle } from "../components/PageChrome";
@@ -14,8 +14,9 @@ export function AttentionPage({
 }: FinancePageProps) {
   const [savingToken, setSavingToken] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const { duplicates, reminders } = data.attention;
-  const hasItems = data.attention.total > 0;
+  const { duplicates } = data.attention;
+  const attentionCount = duplicates.length;
+  const hasItems = attentionCount > 0;
 
   const resolve = async (review: DuplicateReview, decision: "approved" | "rejected") => {
     setSavingToken(review.token);
@@ -27,12 +28,12 @@ export function AttentionPage({
           ...data,
           attention: {
             ...data.attention,
-            total: remainingDuplicates.length + reminders.length,
+            total: remainingDuplicates.length,
             duplicates: remainingDuplicates,
           },
           reconciliation: {
             ...data.reconciliation,
-            openIssues: remainingDuplicates.length + reminders.length,
+            openIssues: remainingDuplicates.length,
           },
         });
       } else {
@@ -50,10 +51,10 @@ export function AttentionPage({
     <main className="app-page" id="page-content" tabIndex={-1}>
       <PageHeader
         title="Контроль"
-        subtitle="Дубли и ближайшие платежи, которые требуют внимания"
+        subtitle="Дубли, которые требуют внимания"
         periodLabel={data.meta.periodLabel}
         fx={data.meta.fx}
-        attentionCount={data.attention.total}
+        attentionCount={attentionCount}
         theme={theme}
         onThemeToggle={onThemeToggle}
         onNewOperation={onNewOperation}
@@ -71,11 +72,11 @@ export function AttentionPage({
         </span>
         <div>
           <span>Центр контроля</span>
-          <h2>{hasItems ? `Ожидают внимания: ${data.attention.total}` : "Всё под контролем"}</h2>
+          <h2>{hasItems ? `Ожидают внимания: ${attentionCount}` : "Всё под контролем"}</h2>
           <p>
             {hasItems
-              ? "Подтвердите только то, что действительно произошло. Напоминания сами не влияют на баланс."
-              : "Нет неподтверждённых дублей и ближайших платежей."}
+              ? "Подтвердите только то, что действительно произошло."
+              : "Нет неподтверждённых дублей."}
           </p>
         </div>
       </section>
@@ -128,34 +129,6 @@ export function AttentionPage({
         )}
       </section>
 
-      <section className="attention-section" aria-label="Ближайшие напоминания">
-        <SectionTitle title="Ближайшие напоминания" action={<span className="section-count">{reminders.length}</span>} />
-        {reminders.length === 0 ? (
-          <EmptyAttention text="На ближайшие 14 дней платежей не запланировано." />
-        ) : (
-          <div className="attention-list">
-            {reminders.map((reminder) => (
-              <article className="attention-item" key={reminder.id}>
-                <span className="attention-item-icon attention-reminder-icon" aria-hidden="true"><CalendarClock size={20} strokeWidth={1.8} /></span>
-                <div className="attention-item-main">
-                  <div className="attention-item-topline">
-                    <strong>{reminder.name}</strong>
-                    <span>{formatMoney(reminder.amountMinor, reminder.currency)}</span>
-                  </div>
-                  <p>{reminder.detail}</p>
-                  <small>До {formatShortDate(reminder.dueDate)} · {reminder.ownerName}</small>
-                </div>
-                <div className="attention-item-actions">
-                  <button className="compact-button compact-button-approve" type="button" onClick={onNewOperation} disabled={!canWrite}>
-                    <Plus size={16} strokeWidth={2} aria-hidden="true" />Внести операцию
-                  </button>
-                </div>
-              </article>
-            ))}
-          </div>
-        )}
-        <p className="attention-footnote"><ShieldAlert size={16} strokeWidth={1.8} aria-hidden="true" /> Напоминание не меняет деньги. В расчёты попадает только подтверждённая операция.</p>
-      </section>
     </main>
   );
 }

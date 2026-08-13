@@ -66,8 +66,8 @@ export function PageHeader({
         <a
           className="icon-button header-attention-button"
           href={routeHref("attention")}
-          aria-label={attentionCount > 0 ? `Контроль: ${attentionCount} ожидают действия` : "Контроль и напоминания"}
-          title={attentionCount > 0 ? `Контроль: ${attentionCount}` : "Контроль и напоминания"}
+          aria-label={attentionCount > 0 ? `Контроль: ${attentionCount} ожидают действия` : "Открыть контроль"}
+          title={attentionCount > 0 ? `Контроль: ${attentionCount}` : "Открыть контроль"}
         >
           <BellRing size={18} strokeWidth={1.8} aria-hidden="true" />
           {attentionCount > 0 ? <span className="header-attention-count">{attentionCount > 9 ? "9+" : attentionCount}</span> : null}

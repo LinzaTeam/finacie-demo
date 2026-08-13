@@ -374,7 +374,7 @@ export const demoDashboard: DashboardData = {
     },
   ],
   attention: {
-    total: 3,
+    total: 1,
     duplicates: [
       {
         token: "demo-review-1",
@@ -435,7 +435,7 @@ export const demoDashboard: DashboardData = {
     status: "complete",
     completedParticipants: 2,
     totalParticipants: 2,
-    openIssues: 3,
+    openIssues: 1,
     nextAction: "Учтены только подтверждённые операции. Ручная сдача дня не нужна.",
   },
 };

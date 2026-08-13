@@ -4,7 +4,7 @@ import { demoDashboard } from "../data/demo";
 import { AttentionPage } from "./AttentionPage";
 
 describe("attention page", () => {
-  it("keeps a duplicate review separate from planned reminders", () => {
+  it("shows only duplicate reviews", () => {
     const onDataChange = vi.fn();
     const onNewOperation = vi.fn();
     render(
@@ -25,13 +25,11 @@ describe("attention page", () => {
     );
 
     expect(screen.getByText("Проверка дублей")).toBeInTheDocument();
-    expect(screen.getByText("Ближайшие напоминания")).toBeInTheDocument();
+    expect(screen.queryByText("Ближайшие напоминания")).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Это не дубль" }));
     expect(onDataChange).toHaveBeenCalledWith(expect.objectContaining({
-      attention: expect.objectContaining({ total: 2, duplicates: [] }),
+      attention: expect.objectContaining({ total: 0, duplicates: [] }),
     }));
-
-    fireEvent.click(screen.getAllByRole("button", { name: "Внести операцию" })[0]);
-    expect(onNewOperation).toHaveBeenCalledTimes(1);
+    expect(onNewOperation).not.toHaveBeenCalled();
   });
 });

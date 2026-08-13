@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { demoDashboard } from "../data/demo";
 import { ObligationsPage } from "./ObligationsPage";
@@ -35,10 +35,10 @@ const cardObligation = {
   note: null,
 };
 
-function pageProps(canWrite = true) {
+function pageProps(canWrite = true, source: "demo" | "api" = "demo") {
   return {
     data: { ...demoDashboard, obligations: [manualObligation, cardObligation] },
-    source: "demo" as const,
+    source,
     theme: "light" as const,
     onThemeToggle: vi.fn(),
     onNewOperation: vi.fn(),
@@ -70,10 +70,24 @@ describe("obligations page", () => {
   });
 
   it("sends credit-card management to the linked account and disables writes in read-only mode", () => {
-    render(<ObligationsPage {...pageProps(false)} />);
+    render(<ObligationsPage {...pageProps(false, "api")} />);
 
     expect(screen.getByRole("button", { name: "Новое обязательство" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Настроить обязательство Рассрочка за технику" })).toBeDisabled();
     expect(screen.getByRole("link", { name: "Настроить связанный счёт для Кредитная карта Т-Банк" })).toHaveAttribute("href", "#/accounts");
+  });
+
+  it("shows a direct, confirmed deletion flow for demo obligations", () => {
+    const onDataChange = vi.fn();
+    render(<ObligationsPage {...pageProps()} onDataChange={onDataChange} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Удалить обязательство Рассрочка за технику" }));
+    const dialog = screen.getByRole("dialog", { name: "Удалить обязательство?" });
+    expect(dialog).toHaveTextContent("будет убрано из демо до обновления страницы");
+
+    fireEvent.click(within(dialog).getByRole("button", { name: "Удалить" }));
+    expect(onDataChange).toHaveBeenCalledWith(expect.objectContaining({
+      obligations: [cardObligation],
+    }));
   });
 });

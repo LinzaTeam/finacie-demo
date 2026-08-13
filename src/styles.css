@@ -1874,7 +1874,17 @@ html[data-theme="dark"] .segmented-control .segment-active {
   font-size: 9px;
 }
 
-.obligation-edit { grid-column: 1 / -1; width: max-content; margin-top: 4px; }
+.obligation-actions {
+  display: flex;
+  grid-column: 1 / -1;
+  margin-top: 4px;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.obligation-edit { width: max-content; }
+.obligation-delete { min-height: 30px; padding-inline: 8px; font-size: 8px; }
 
 .obligation-debt {
   grid-column: 1 / -1;
@@ -3890,6 +3900,8 @@ html[data-theme="dark"] .login-feature-grid article { border-color: var(--line);
 }
 
 .product-dialog-compact { width: min(480px, 100%); }
+.obligation-delete-dialog { min-height: auto; padding-top: 30px; }
+.obligation-delete-dialog footer { margin-top: 24px; }
 .product-dialog header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
 .product-dialog h2 { margin: 0; font-size: 21px; letter-spacing: -0.03em; }
 .product-dialog header p { max-width: 44ch; margin: 5px 0 0; color: var(--text-secondary); font-size: 10px; }

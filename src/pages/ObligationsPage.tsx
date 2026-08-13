@@ -15,11 +15,27 @@ export function ObligationsPage({
   selectedPeriod, onPeriodChange, activeUserKey, canWrite = true, onDataChange, onRefresh,
 }: FinancePageProps) {
   const [editing, setEditing] = useState<Obligation | "new" | null>(null);
+  const [pendingDeletion, setPendingDeletion] = useState<Obligation | null>(null);
   const [saving, setSaving] = useState(false);
   const total = data.obligations.reduce((sum, item) => sum + item.debtMinor, 0);
   const updateDemo = (obligation: Obligation) => {
     const exists = data.obligations.some((item) => item.id === obligation.id);
     onDataChange?.({ ...data, obligations: exists ? data.obligations.map((item) => item.id === obligation.id ? obligation : item) : [...data.obligations, obligation] });
+  };
+  const removeObligation = async (obligation: Obligation) => {
+    setSaving(true);
+    try {
+      if (source === "demo") {
+        onDataChange?.({ ...data, obligations: data.obligations.filter((item) => item.id !== obligation.id) });
+      } else {
+        await deleteManualObligation(obligation.id.replace(/^manual:/, ""));
+      }
+      setPendingDeletion(null);
+      setEditing(null);
+      if (source === "api") onRefresh?.();
+    } finally {
+      setSaving(false);
+    }
   };
 
   return <main className="app-page" id="page-content" tabIndex={-1}>
@@ -36,20 +52,31 @@ export function ObligationsPage({
 
     <section className="obligation-grid">
       {data.obligations.map((obligation, index) => {
-        const editable = obligation.source === "manual";
+        const editable = source === "demo" || obligation.source === "manual";
         return <article className={`obligation-card obligation-card-${(index % 3) + 1}`} key={obligation.id}>
           <span className="obligation-card-icon" aria-hidden="true"><CreditCard size={22} strokeWidth={1.7} /></span>
           <div className="obligation-card-title"><h2>{obligation.name}</h2><span><UserRound size={14} strokeWidth={1.8} aria-hidden="true" />{obligation.owner}</span></div>
           {editable ? (
-            <button
-              className="text-button obligation-edit"
-              type="button"
-              onClick={() => setEditing(obligation)}
-              disabled={!canWrite}
-              aria-label={`Настроить обязательство ${obligation.name}`}
-            >
-              <Pencil size={14} aria-hidden="true" />Настроить
-            </button>
+            <div className="obligation-actions">
+              <button
+                className="text-button obligation-edit"
+                type="button"
+                onClick={() => setEditing(obligation)}
+                disabled={!canWrite}
+                aria-label={`Настроить обязательство ${obligation.name}`}
+              >
+                <Pencil size={14} aria-hidden="true" />Настроить
+              </button>
+              <button
+                className="danger-button obligation-delete"
+                type="button"
+                onClick={() => setPendingDeletion(obligation)}
+                disabled={!canWrite}
+                aria-label={`Удалить обязательство ${obligation.name}`}
+              >
+                <Trash2 size={14} aria-hidden="true" />Удалить
+              </button>
+            </div>
           ) : obligation.accountKey ? (
             <a
               className="text-button obligation-edit"
@@ -77,13 +104,8 @@ export function ObligationsPage({
       saving={saving}
       onClose={() => setEditing(null)}
       onDelete={editing === "new" ? undefined : async () => {
-        setSaving(true);
-        try {
-          if (source === "demo") onDataChange?.({ ...data, obligations: data.obligations.filter((item) => item.id !== editing.id) });
-          else await deleteManualObligation(editing.id.replace(/^manual:/, ""));
-          setEditing(null);
-          if (source === "api") onRefresh?.();
-        } finally { setSaving(false); }
+        setPendingDeletion(editing);
+        setEditing(null);
       }}
       onSave={async (obligation) => {
         if (!canWrite) return;
@@ -101,7 +123,36 @@ export function ObligationsPage({
         } finally { setSaving(false); }
       }}
     /> : null}
+    {pendingDeletion ? <ObligationDeleteDialog
+      obligation={pendingDeletion}
+      source={source}
+      saving={saving}
+      onClose={() => !saving && setPendingDeletion(null)}
+      onConfirm={() => void removeObligation(pendingDeletion)}
+    /> : null}
   </main>;
+}
+
+function ObligationDeleteDialog({ obligation, source, saving, onClose, onConfirm }: {
+  obligation: Obligation;
+  source: FinancePageProps["source"];
+  saving: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+}) {
+  const isDemo = source === "demo";
+  return <div className="sheet-layer" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
+    <section className="product-dialog product-dialog-compact obligation-delete-dialog" role="dialog" aria-modal="true" aria-labelledby="delete-obligation-title">
+      <header>
+        <div><h2 id="delete-obligation-title">Удалить обязательство?</h2><p>{obligation.name} {isDemo ? "будет убрано из демо до обновления страницы." : "будет убрано из активного списка, а запись сохранится в журнале."}</p></div>
+        <button className="icon-button" type="button" onClick={onClose} disabled={saving} aria-label="Закрыть"><X size={18} /></button>
+      </header>
+      <footer>
+        <button className="quiet-button" type="button" onClick={onClose} disabled={saving}>Отмена</button>
+        <button className="danger-button" type="button" onClick={onConfirm} disabled={saving}><Trash2 size={16} />{saving ? "Удаляю" : "Удалить"}</button>
+      </footer>
+    </section>
+  </div>;
 }
 
 function ObligationDialog({ obligation, data, activeUserKey, saving, onClose, onSave, onDelete }: {

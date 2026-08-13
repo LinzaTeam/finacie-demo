@@ -4245,6 +4245,18 @@ html[data-theme="dark"] .login-feature-grid article { border-color: var(--line);
 
 .analytics-filters { justify-content: flex-start; }
 .analytics-filters .segmented-control { width: auto; }
+.analytics-filter-main { display: flex; min-width: 0; align-items: center; flex-wrap: wrap; gap: 10px; }
+.analytics-range-filter,
+.analytics-date-range label { display: grid; align-items: center; gap: 4px; }
+.analytics-range-filter > span,
+.analytics-date-range label > span { color: var(--text-secondary); font-size: 9px; font-weight: 700; letter-spacing: 0.03em; }
+.analytics-range-filter select,
+.analytics-date-range input { box-sizing: border-box; height: 40px; min-height: 40px; padding: 0 10px; border: 1px solid var(--line); border-radius: 10px; color: var(--text); background: var(--surface); font-size: 10px; font-weight: 650; }
+.analytics-range-filter select { min-width: 148px; }
+.analytics-date-range { display: flex; align-items: flex-end; gap: 6px; }
+.analytics-date-range input { width: 135px; }
+.analytics-date-separator { padding-bottom: 11px; color: var(--text-tertiary); font-size: 12px; }
+.analytics-range-preview { max-width: 240px; color: var(--text-secondary); font-size: 10px; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .person-filter {
   display: grid;
   margin-left: auto;
@@ -4395,6 +4407,13 @@ html[data-theme="dark"] .flow-chart-tooltip { background: #202126; box-shadow: 0
   .category-editor-card select { grid-column: 2 / -1; grid-row: 2; }
   .analytics-filters { align-items: stretch; flex-direction: column; }
   .analytics-filters .segmented-control { width: 100%; }
+  .analytics-filter-main { width: 100%; align-items: stretch; flex-direction: column; }
+  .analytics-filter-main .segmented-control { width: 100%; }
+  .analytics-range-filter select { width: 100%; }
+  .analytics-date-range { align-items: stretch; }
+  .analytics-date-range label { flex: 1 1 0; }
+  .analytics-date-range input { width: 100%; }
+  .analytics-range-preview { max-width: none; }
   .person-filter { width: 100%; margin-left: 0; grid-template-columns: max-content minmax(0, 1fr); }
   .analytics-summary { grid-template-columns: 1fr; }
   .analytics-summary > div { min-height: 72px; }

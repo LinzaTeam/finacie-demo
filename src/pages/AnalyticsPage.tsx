@@ -1,12 +1,14 @@
 import type { CSSProperties } from "react";
 import { BarChart3, CircleDot, LineChart, TrendingUp } from "lucide-react";
 import { useEffect, useId, useMemo, useState } from "react";
-import { getAnalytics } from "../api/analytics";
+import { getAnalytics, type AnalyticsRange } from "../api/analytics";
 import { IconGlyph } from "../components/IconGlyph";
 import { DataNotices, PageHeader, SectionTitle } from "../components/PageChrome";
 import { formatMoney, formatSignedMoney } from "../lib/format";
 import type { AnalyticsData } from "../types";
 import type { FinancePageProps } from "./types";
+
+type AnalyticsRangePreset = "auto" | "month" | "quarter" | "year" | "custom";
 
 export function AnalyticsPage({
   data, source, theme, onThemeToggle, onNewOperation, onSearch, activeUser,
@@ -14,19 +16,37 @@ export function AnalyticsPage({
 }: FinancePageProps) {
   const [scope, setScope] = useState<AnalyticsData["scope"]>("month");
   const [person, setPerson] = useState<string | null>(null);
+  const [rangePreset, setRangePreset] = useState<AnalyticsRangePreset>("auto");
+  const [customRange, setCustomRange] = useState<AnalyticsRange>(() => monthRange(selectedPeriod));
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
+  const selectedRange = useMemo(
+    () => rangePreset === "auto" ? null : resolveRange(rangePreset, scope, selectedPeriod, data, customRange),
+    [customRange, data, rangePreset, scope, selectedPeriod],
+  );
+  const displayedRange = selectedRange ?? resolveRange("auto", scope, selectedPeriod, data, customRange);
+  const rangeError = rangePreset === "custom" ? validateRange(customRange) : null;
   useEffect(() => {
     const controller = new AbortController();
+    if (rangeError) {
+      setAnalytics(null);
+      setStatus("error");
+      return () => controller.abort();
+    }
     setStatus("loading");
-    getAnalytics(data, source, selectedPeriod, scope, person, controller.signal)
-      .then((value) => { setAnalytics(value); setStatus("ready"); })
+    getAnalytics(data, source, selectedPeriod, scope, person, selectedRange, controller.signal)
+      .then((value) => {
+        if (controller.signal.aborted) return;
+        setAnalytics(value);
+        setStatus("ready");
+      })
       .catch((error: unknown) => {
+        if (controller.signal.aborted) return;
         if (error instanceof DOMException && error.name === "AbortError") return;
         setStatus("error");
       });
     return () => controller.abort();
-  }, [data, person, scope, selectedPeriod, source]);
+  }, [data, person, rangeError, scope, selectedPeriod, selectedRange, source]);
 
   return <main className="app-page" id="page-content" tabIndex={-1}>
     <PageHeader title="Аналитика" subtitle="Доходы и расходы вместе и по каждому участнику" periodLabel={data.meta.periodLabel} fx={data.meta.fx} attentionCount={data.attention.total}
@@ -34,17 +54,89 @@ export function AnalyticsPage({
       activeUser={activeUser} selectedPeriod={selectedPeriod} onPeriodChange={onPeriodChange} />
     <DataNotices source={source} fx={data.meta.fx} />
     <section className="analytics-filters">
-      <div className="segmented-control" aria-label="Глубина аналитики">
-        <button className={scope === "month" ? "segment-active" : ""} type="button" onClick={() => setScope("month")}>По дням</button>
-        <button className={scope === "year" ? "segment-active" : ""} type="button" onClick={() => setScope("year")}>По месяцам</button>
-        <button className={scope === "years" ? "segment-active" : ""} type="button" onClick={() => setScope("years")}>По годам</button>
+      <div className="analytics-filter-main">
+        <div className="segmented-control" aria-label="Глубина аналитики">
+          <button className={scope === "month" ? "segment-active" : ""} type="button" onClick={() => setScope("month")}>По дням</button>
+          <button className={scope === "year" ? "segment-active" : ""} type="button" onClick={() => setScope("year")}>По месяцам</button>
+          <button className={scope === "years" ? "segment-active" : ""} type="button" onClick={() => setScope("years")}>По годам</button>
+        </div>
+        <label className="analytics-range-filter">
+          <span>Отрезок</span>
+          <select value={rangePreset} onChange={(event) => setRangePreset(event.target.value as AnalyticsRangePreset)} aria-label="Отрезок аналитики">
+            <option value="auto">По разбивке</option>
+            <option value="month">Выбранный месяц</option>
+            <option value="quarter">Последние 3 месяца</option>
+            <option value="year">Выбранный год</option>
+            <option value="custom">Свои даты</option>
+          </select>
+        </label>
+        {rangePreset === "custom" ? (
+          <div className="analytics-date-range" aria-label="Произвольный отрезок">
+            <label><span>С</span><input aria-label="Дата начала" type="date" value={customRange.start} onChange={(event) => setCustomRange((current) => ({ ...current, start: event.target.value }))} /></label>
+            <span className="analytics-date-separator">—</span>
+            <label><span>По</span><input aria-label="Дата окончания" type="date" value={customRange.end} onChange={(event) => setCustomRange((current) => ({ ...current, end: event.target.value }))} /></label>
+          </div>
+        ) : <span className="analytics-range-preview">{formatRangeLabel(displayedRange)}</span>}
       </div>
       <label className="person-filter"><span>Участник</span><select className="person-filter-select" value={person ?? "all"} onChange={(event) => setPerson(event.target.value === "all" ? null : event.target.value)}><option value="all">Все вместе</option>{data.people.map((item) => <option value={item.key} key={item.key}>{item.name}</option>)}</select></label>
     </section>
     {status === "loading" ? <div className="panel analytics-loading">Собираю аналитику…</div> : null}
-    {status === "error" ? <div className="panel analytics-loading">Не удалось загрузить аналитику.</div> : null}
+    {status === "error" ? <div className="panel analytics-loading">{rangeError ?? "Не удалось загрузить аналитику."}</div> : null}
     {status === "ready" && analytics ? <AnalyticsContent value={analytics} /> : null}
   </main>;
+}
+
+function monthRange(period: string): AnalyticsRange {
+  const [year, month] = period.split("-").map(Number);
+  const lastDay = new Date(Date.UTC(year, month, 0)).toISOString().slice(0, 10);
+  return { start: `${period}-01`, end: lastDay };
+}
+
+function yearRange(period: string): AnalyticsRange {
+  const year = period.slice(0, 4);
+  return { start: `${year}-01-01`, end: `${year}-12-31` };
+}
+
+function historyRange(data: FinancePageProps["data"], period: string): AnalyticsRange {
+  const selectedYear = Number(period.slice(0, 4));
+  const firstYear = Math.min(
+    selectedYear,
+    ...data.transactions
+      .map((transaction) => Number(transaction.occurredAt.slice(0, 4)))
+      .filter((year) => Number.isFinite(year) && year <= selectedYear),
+  );
+  return { start: `${firstYear}-01-01`, end: `${selectedYear}-12-31` };
+}
+
+function resolveRange(
+  preset: AnalyticsRangePreset,
+  scope: AnalyticsData["scope"],
+  period: string,
+  data: FinancePageProps["data"],
+  customRange: AnalyticsRange,
+): AnalyticsRange {
+  if (preset === "custom") return customRange;
+  if (preset === "month") return monthRange(period);
+  if (preset === "year") return yearRange(period);
+  if (preset === "quarter") {
+    const month = new Date(`${period}-01T12:00:00+03:00`);
+    month.setMonth(month.getMonth() - 2);
+    return { start: month.toISOString().slice(0, 7) + "-01", end: monthRange(period).end };
+  }
+  if (scope === "year") return yearRange(period);
+  if (scope === "years") return historyRange(data, period);
+  return monthRange(period);
+}
+
+function validateRange(range: AnalyticsRange): string | null {
+  if (!range.start || !range.end) return "Укажите обе даты для аналитики.";
+  if (range.start > range.end) return "Дата начала не может быть позже даты окончания.";
+  return null;
+}
+
+function formatRangeLabel(range: AnalyticsRange): string {
+  const formatter = new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "short", year: "numeric" });
+  return `${formatter.format(new Date(`${range.start}T12:00:00+03:00`))} — ${formatter.format(new Date(`${range.end}T12:00:00+03:00`))}`;
 }
 
 function AnalyticsContent({ value }: { value: AnalyticsData }) {

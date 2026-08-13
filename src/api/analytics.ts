@@ -1,5 +1,10 @@
 import type { AnalyticsData, DashboardData } from "../types";
 
+export type AnalyticsRange = {
+  start: string;
+  end: string;
+};
+
 type RawAnalytics = {
   period_start: string;
   period_end: string;
@@ -91,33 +96,40 @@ function demoAnalytics(
   period: string,
   scope: AnalyticsData["scope"],
   personKey: string | null,
+  range: AnalyticsRange | null,
 ): AnalyticsData {
   const selectedYear = Number(period.slice(0, 4));
-  const transactions = data.transactions.filter((transaction) => (
-    (scope === "month"
-      ? transaction.occurredAt.startsWith(period)
-      : scope === "year"
-        ? transaction.occurredAt.startsWith(String(selectedYear))
-        : Number(transaction.occurredAt.slice(0, 4)) <= selectedYear) &&
-    (!personKey || transaction.subjectKey === personKey)
-  ));
+  const personTransactions = data.transactions.filter((transaction) => !personKey || transaction.subjectKey === personKey);
+  const transactionYears = personTransactions
+    .map((transaction) => Number(transaction.occurredAt.slice(0, 4)))
+    .filter((year) => Number.isFinite(year) && year <= selectedYear);
+  const defaultStart = scope === "month"
+    ? `${period}-01`
+    : scope === "year"
+      ? `${selectedYear}-01-01`
+      : `${Math.min(selectedYear, ...transactionYears)}-01-01`;
+  const defaultEnd = scope === "month"
+    ? endOfMonth(period)
+    : `${selectedYear}-12-31`;
+  const rangeStart = range?.start ?? defaultStart;
+  const rangeEnd = range?.end ?? defaultEnd;
+  const transactions = personTransactions.filter((transaction) => {
+    const occurredDate = transaction.occurredAt.slice(0, 10);
+    return occurredDate >= rangeStart && occurredDate <= rangeEnd;
+  });
   const buckets = new Map<string, { bucket: string; incomeMinor: number; expenseMinor: number }>();
   if (scope === "month") {
-    const [year, month] = period.split("-").map(Number);
-    const dayCount = new Date(year, month, 0).getDate();
-    for (let day = 1; day <= dayCount; day += 1) {
-      const bucket = `${period}-${String(day).padStart(2, "0")}`;
+    for (let cursor = rangeStart; cursor <= rangeEnd; cursor = addDays(cursor, 1)) {
+      const bucket = cursor;
       buckets.set(bucket, { bucket, incomeMinor: 0, expenseMinor: 0 });
     }
   } else if (scope === "year") {
-    for (let month = 1; month <= 12; month += 1) {
-      const bucket = `${selectedYear}-${String(month).padStart(2, "0")}`;
+    for (let cursor = startOfMonth(rangeStart); cursor <= startOfMonth(rangeEnd); cursor = addMonths(cursor, 1)) {
+      const bucket = cursor.slice(0, 7);
       buckets.set(bucket, { bucket, incomeMinor: 0, expenseMinor: 0 });
     }
   } else {
-    const years = transactions.map((transaction) => Number(transaction.occurredAt.slice(0, 4)));
-    const firstYear = Math.min(selectedYear, ...years.filter(Number.isFinite));
-    for (let year = firstYear; year <= selectedYear; year += 1) {
+    for (let year = Number(rangeStart.slice(0, 4)); year <= Number(rangeEnd.slice(0, 4)); year += 1) {
       const bucket = String(year);
       buckets.set(bucket, { bucket, incomeMinor: 0, expenseMinor: 0 });
     }
@@ -186,18 +198,9 @@ function demoAnalytics(
   const visiblePeople = [...personTotals.values()].filter((person) => !personKey || person.key === personKey);
   const incomeMinor = visiblePeople.reduce((sum, person) => sum + person.incomeMinor, 0);
   const expenseMinor = visiblePeople.reduce((sum, person) => sum + person.expenseMinor, 0);
-  const firstBucket = buckets.keys().next().value as string | undefined;
-  const periodStart = scope === "month"
-    ? `${period}-01`
-    : scope === "year"
-      ? `${selectedYear}-01-01`
-      : `${firstBucket ?? selectedYear}-01-01`;
-  const periodEnd = scope === "month"
-    ? `${period}-${String(new Date(Number(period.slice(0, 4)), Number(period.slice(5, 7)), 0).getDate()).padStart(2, "0")}`
-    : `${selectedYear}-12-31`;
   return {
-    periodStart,
-    periodEnd,
+    periodStart: rangeStart,
+    periodEnd: rangeEnd,
     scope,
     currency: data.availableMoney.currency,
     partial: false,
@@ -209,17 +212,52 @@ function demoAnalytics(
   };
 }
 
+function parseDate(value: string): Date {
+  const [year, month, day] = value.split("-").map(Number);
+  return new Date(Date.UTC(year, month - 1, day));
+}
+
+function formatDate(value: Date): string {
+  return value.toISOString().slice(0, 10);
+}
+
+function addDays(value: string, amount: number): string {
+  const result = parseDate(value);
+  result.setUTCDate(result.getUTCDate() + amount);
+  return formatDate(result);
+}
+
+function startOfMonth(value: string): string {
+  return `${value.slice(0, 7)}-01`;
+}
+
+function endOfMonth(period: string): string {
+  const [year, month] = period.split("-").map(Number);
+  return formatDate(new Date(Date.UTC(year, month, 0)));
+}
+
+function addMonths(value: string, amount: number): string {
+  const result = parseDate(startOfMonth(value));
+  result.setUTCMonth(result.getUTCMonth() + amount);
+  return formatDate(result);
+}
+
 export async function getAnalytics(
   data: DashboardData,
   source: "api" | "demo",
   period: string,
   scope: AnalyticsData["scope"],
   personKey: string | null,
+  range: AnalyticsRange | null = null,
   signal?: AbortSignal,
 ): Promise<AnalyticsData> {
-  if (source === "demo") return demoAnalytics(data, period, scope, personKey);
+  if (source === "demo") return demoAnalytics(data, period, scope, personKey, range);
   const query = new URLSearchParams({ period, scope });
   if (personKey) query.set("person", personKey);
+  if (range) {
+    query.set("start_date", range.start);
+    query.set("end_date", range.end);
+  }
   const headers: Record<string, string> = { Accept: "application/json" };
   const devUser = import.meta.env.VITE_FINANCE_DEV_USER;
   if (devUser) headers["X-Finance-Dev-User"] = devUser;

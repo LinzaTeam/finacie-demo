@@ -21,6 +21,13 @@ describe("analytics page", () => {
     );
     expect(await screen.findByText("Вклад участников")).toBeInTheDocument();
     expect(screen.getByLabelText("Участник")).toHaveClass("person-filter-select");
+    fireEvent.change(screen.getByLabelText("Отрезок аналитики"), { target: { value: "custom" } });
+    expect(screen.getByLabelText("Дата начала")).toHaveValue("2026-08-01");
+    expect(screen.getByLabelText("Дата окончания")).toHaveValue("2026-08-31");
+    fireEvent.change(screen.getByLabelText("Дата начала"), { target: { value: "2026-08-20" } });
+    fireEvent.change(screen.getByLabelText("Дата окончания"), { target: { value: "2026-08-10" } });
+    expect(await screen.findByText("Дата начала не может быть позже даты окончания.")).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("Дата окончания"), { target: { value: "2026-08-31" } });
     fireEvent.change(screen.getByLabelText("Участник"), { target: { value: "person-2" } });
     fireEvent.click(screen.getByRole("button", { name: "По месяцам" }));
     await waitFor(() => {

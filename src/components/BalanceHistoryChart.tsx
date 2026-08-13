@@ -15,6 +15,8 @@ type BalanceHistoryChartProps = {
 type BalancePoint = {
   date: string;
   balanceMinor: number;
+  incomeMinor: number;
+  expenseMinor: number;
   changeMinor: number;
 };
 
@@ -68,22 +70,28 @@ export function buildBalanceSeries(
   const asOfDay = generatedAt.slice(0, 7) === activePeriod
     ? Math.max(1, Math.min(dayCount, Number(generatedAt.slice(8, 10))))
     : dayCount;
-  const netByDate = new Map<string, number>();
+  const cashflowByDate = new Map<string, { incomeMinor: number; expenseMinor: number }>();
 
   points
     .filter((point) => point.date.startsWith(activePeriod))
     .forEach((point) => {
-      netByDate.set(point.date, (netByDate.get(point.date) ?? 0) + point.incomeMinor - point.expenseMinor);
+      const current = cashflowByDate.get(point.date) ?? { incomeMinor: 0, expenseMinor: 0 };
+      cashflowByDate.set(point.date, {
+        incomeMinor: current.incomeMinor + point.incomeMinor,
+        expenseMinor: current.expenseMinor + point.expenseMinor,
+      });
     });
 
-  const netForPeriod = [...netByDate.values()].reduce((sum, value) => sum + value, 0);
+  const netForPeriod = [...cashflowByDate.values()]
+    .reduce((sum, point) => sum + point.incomeMinor - point.expenseMinor, 0);
   let balance = currentBalanceMinor - netForPeriod;
 
   return Array.from({ length: asOfDay }, (_, index) => {
     const date = `${activePeriod}-${String(index + 1).padStart(2, "0")}`;
-    const changeMinor = netByDate.get(date) ?? 0;
+    const cashflow = cashflowByDate.get(date) ?? { incomeMinor: 0, expenseMinor: 0 };
+    const changeMinor = cashflow.incomeMinor - cashflow.expenseMinor;
     balance += changeMinor;
-    return { date, balanceMinor: balance, changeMinor };
+    return { date, balanceMinor: balance, ...cashflow, changeMinor };
   });
 }
 
@@ -115,12 +123,9 @@ export function BalanceHistoryChart({ currentBalanceMinor, currency, generatedAt
     year: "numeric",
   }).format(new Date(`${activePoint.date}T12:00:00+03:00`));
   const activeChange = activePoint?.changeMinor ?? 0;
-  const activeChangeLabel = activeChange === 0
-    ? "Без изменений за день"
-    : `${formatSignedMoney(activeChange, currency)} за день`;
   const activePointLabel = activePoint === null
     ? ""
-    : `${activeDate}: ${formatMoney(activePoint.balanceMinor, currency)}. ${activeChangeLabel}.`;
+    : `${activeDate}: баланс ${formatMoney(activePoint.balanceMinor, currency)}. Пополнено ${formatMoney(activePoint.incomeMinor, currency)}. Потрачено ${formatMoney(activePoint.expenseMinor, currency)}. Разница ${formatSignedMoney(activeChange, currency)}.`;
   const tooltipStyle = activePoint === null ? undefined : ({
     "--balance-tooltip-x": `${(activeX / WIDTH) * 100}%`,
     "--balance-tooltip-y": `${(activeY / HEIGHT) * 100}%`,
@@ -195,13 +200,17 @@ export function BalanceHistoryChart({ currentBalanceMinor, currency, generatedAt
         <div
           className="balance-chart-tooltip"
           data-align={activeIndex === 0 ? "start" : activeIndex === series.length - 1 ? "end" : "center"}
-          data-placement={activeY < PLOT_TOP + 48 ? "below" : "above"}
+          data-placement={activeY < PLOT_TOP + 84 ? "below" : "above"}
           style={tooltipStyle}
           aria-hidden="true"
         >
           <time dateTime={activePoint.date}>{activeDate}</time>
           <strong>{formatMoney(activePoint.balanceMinor, currency)}</strong>
-          <span className={activeChange > 0 ? "positive" : activeChange < 0 ? "negative" : "neutral"}>{activeChangeLabel}</span>
+          <dl>
+            <div><dt>Пополнено</dt><dd className={activePoint.incomeMinor > 0 ? "positive" : "neutral"}>{formatSignedMoney(activePoint.incomeMinor, currency)}</dd></div>
+            <div><dt>Потрачено</dt><dd className={activePoint.expenseMinor > 0 ? "negative" : "neutral"}>{formatSignedMoney(-activePoint.expenseMinor, currency)}</dd></div>
+            <div className="balance-chart-tooltip-net"><dt>Разница</dt><dd className={activeChange > 0 ? "positive" : activeChange < 0 ? "negative" : "neutral"}>{formatSignedMoney(activeChange, currency)}</dd></div>
+          </dl>
         </div>
       ) : null}
       <span className="sr-only" aria-live="polite">{activePointLabel}</span>

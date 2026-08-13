@@ -13,9 +13,9 @@ describe("BalanceHistoryChart", () => {
     const series = buildBalanceSeries(148_000_00, "2026-08-12T12:00:00+03:00", "2026-08", points);
 
     expect(series).toHaveLength(12);
-    expect(series[0]).toMatchObject({ date: "2026-08-01", balanceMinor: 140_000_00, changeMinor: 0 });
-    expect(series[2]).toMatchObject({ date: "2026-08-03", balanceMinor: 184_000_00, changeMinor: 44_000_00 });
-    expect(series.at(-1)).toMatchObject({ date: "2026-08-12", balanceMinor: 148_000_00, changeMinor: -14_000_00 });
+    expect(series[0]).toMatchObject({ date: "2026-08-01", balanceMinor: 140_000_00, incomeMinor: 0, expenseMinor: 0, changeMinor: 0 });
+    expect(series[2]).toMatchObject({ date: "2026-08-03", balanceMinor: 184_000_00, incomeMinor: 60_000_00, expenseMinor: 16_000_00, changeMinor: 44_000_00 });
+    expect(series.at(-1)).toMatchObject({ date: "2026-08-12", balanceMinor: 148_000_00, incomeMinor: 0, expenseMinor: 14_000_00, changeMinor: -14_000_00 });
   });
 
   it("exposes the chart and current-day marker to assistive technology", () => {
@@ -51,10 +51,13 @@ describe("BalanceHistoryChart", () => {
     const chart = screen.getByRole("img", { name: /Баланс по дням за Август 2026/ });
     fireEvent.focus(chart);
     expect(screen.getByText(/12 августа 2026/, { selector: "time" })).toBeInTheDocument();
-    expect(screen.getByText(/14.000.*за день/, { selector: ".balance-chart-tooltip span" })).toBeInTheDocument();
+    expect(screen.getByText("Пополнено")).toBeInTheDocument();
+    expect(screen.getByText("Потрачено")).toBeInTheDocument();
+    expect(screen.getByText("Разница")).toBeInTheDocument();
+    expect(screen.getByText("−14 000 ₽", { selector: ".balance-chart-tooltip-net dd" })).toBeInTheDocument();
 
     fireEvent.keyDown(chart, { key: "ArrowLeft" });
     expect(screen.getByText(/11 августа 2026/, { selector: "time" })).toBeInTheDocument();
-    expect(screen.getByText("Без изменений за день", { selector: ".balance-chart-tooltip span" })).toBeInTheDocument();
+    expect(screen.getByText("0 ₽", { selector: ".balance-chart-tooltip-net dd" })).toBeInTheDocument();
   });
 });

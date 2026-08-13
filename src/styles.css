@@ -926,8 +926,8 @@ html[data-theme="dark"] .balance-hero {
   top: var(--balance-tooltip-y);
   left: var(--balance-tooltip-x);
   display: grid;
-  min-width: 134px;
-  max-width: min(180px, calc(100% - 12px));
+  min-width: 174px;
+  max-width: min(210px, calc(100% - 12px));
   padding: 9px 11px 10px;
   gap: 1px;
   border-radius: 10px;
@@ -957,16 +957,16 @@ html[data-theme="dark"] .balance-hero {
   white-space: nowrap;
 }
 
-.balance-chart-tooltip span {
-  margin-top: 2px;
-  font-size: 9px;
-  font-weight: 650;
-  white-space: nowrap;
-}
-
-.balance-chart-tooltip span.positive { color: var(--lemon); }
-.balance-chart-tooltip span.negative { color: #ffafb5; }
-.balance-chart-tooltip span.neutral { color: rgb(255 253 245 / 0.72); }
+.balance-chart-tooltip dl { display: grid; margin: 5px 0 0; gap: 4px; }
+.balance-chart-tooltip dl > div { display: flex; justify-content: space-between; gap: 14px; }
+.balance-chart-tooltip dt,
+.balance-chart-tooltip dd { margin: 0; font-size: 9px; }
+.balance-chart-tooltip dt { color: rgb(255 253 245 / 0.72); }
+.balance-chart-tooltip dd { font-weight: 720; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.balance-chart-tooltip-net { margin-top: 2px; padding-top: 5px; border-top: 1px solid rgb(255 253 245 / 0.16); }
+.balance-chart-tooltip .positive { color: var(--lemon); }
+.balance-chart-tooltip .negative { color: #ffafb5; }
+.balance-chart-tooltip .neutral { color: rgb(255 253 245 / 0.72); }
 
 html[data-theme="dark"] .balance-chart-tooltip {
   background: #202126;

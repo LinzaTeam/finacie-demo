@@ -104,6 +104,7 @@ export const demoDashboard: DashboardData = {
     { id: "transfers", label: "Переводы", iconKey: "arrow-left-right", color: "#D0D9F5", amountMinor: 0, currency: "RUB", share: 0 },
     { id: "cats", label: "Коты", iconKey: "cat", color: "#E7F1AB", amountMinor: 0, currency: "RUB", share: 0 },
     { id: "home", label: "Дом", iconKey: "house", color: "#E7C06D", amountMinor: 24_730_00, currency: "RUB", share: 0.192 },
+    { id: "tech", label: "Техника", iconKey: "laptop", color: "#95B1EE", amountMinor: 0, currency: "RUB", share: 0 },
     { id: "health", label: "Здоровье", iconKey: "heart-pulse", color: "#D99A9A", amountMinor: 12_848_00, currency: "RUB", share: 0.1 },
     { id: "beauty_care", label: "Красота", iconKey: "sparkles", color: "#C7A9D8", amountMinor: 0, currency: "RUB", share: 0 },
     { id: "clothes", label: "Одежда", iconKey: "shirt", color: "#95B1EE", amountMinor: 0, currency: "RUB", share: 0 },

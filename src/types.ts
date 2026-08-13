@@ -84,6 +84,7 @@ export type DashboardData = {
     currency: CurrencyCode;
     minimumPaymentMinor: number | null;
     dueDate: string | null;
+    creditLimitMinor: number | null;
     availableCreditMinor: number | null;
     recurrence?: "once" | "monthly";
     accountKey?: string | null;

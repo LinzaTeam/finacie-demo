@@ -69,6 +69,7 @@ type RawDashboard = {
     source?: "credit_card" | "manual";
     debt_cents: number;
     currency?: string;
+    credit_limit_cents?: number | null;
     available_credit_cents: number | null;
     min_payment_cents: number | null;
     due_date: string | null;
@@ -339,6 +340,7 @@ export function normalizeDashboard(raw: RawDashboard): DashboardData {
       currency: obligation.currency || raw.currency,
       minimumPaymentMinor: obligation.min_payment_cents,
       dueDate: obligation.due_date,
+      creditLimitMinor: obligation.credit_limit_cents ?? null,
       availableCreditMinor: obligation.available_credit_cents,
       recurrence: obligation.recurrence || "monthly",
       accountKey: obligation.account_key || null,

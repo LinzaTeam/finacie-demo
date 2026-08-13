@@ -2,6 +2,7 @@ import { Check, History, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { DashboardSource } from "../api/dashboard";
 import { previewTransaction, type OperationPreview, type TransactionCommand } from "../api/transactions";
+import { accountGroupLabels } from "../lib/accountBalances";
 import { formatMoney } from "../lib/format";
 import { parseOperation, type ParsedOperation } from "../lib/operationRecognition";
 import type { DashboardData } from "../types";
@@ -229,11 +230,11 @@ export function QuickAddSheet({
                 <select aria-label="Основной счёт" value={operationAccount || ""} onChange={(event) => setOverrides((current) => ({
                   ...current,
                   ...(reviewed.transactionKind === "income" ? { accountToId: event.target.value } : { accountFromId: event.target.value }),
-                }))}><option value="">Выберите счёт</option>{accounts.map((account) => <option value={account.id} key={account.id}>{account.name}</option>)}</select>
+                }))}><option value="">Выберите счёт</option>{accounts.map((account) => <option value={account.id} key={account.id}>{account.name} · {accountGroupLabels[account.group]}</option>)}</select>
               </label>
               {reviewed.transactionKind === "own_transfer" ? <label className="operation-review-row"><span>Счёт зачисления</span><select aria-label="Счёт зачисления"
                 value={reviewed.accountToId || ""} onChange={(event) => setOverrides((current) => ({ ...current, accountToId: event.target.value }))}>
-                <option value="">Выберите счёт</option>{accounts.map((account) => <option value={account.id} key={account.id}>{account.name}</option>)}</select></label> : null}
+                <option value="">Выберите счёт</option>{accounts.map((account) => <option value={account.id} key={account.id}>{account.name} · {accountGroupLabels[account.group]}</option>)}</select></label> : null}
               {reviewed.transactionKind === "card_payment" ? <label className="operation-review-row"><span>Категория</span><select aria-label="Категория"
                 value={reviewed.categoryKey || "other"} onChange={(event) => setOverrides((current) => ({ ...current, categoryKey: event.target.value }))}>
                 {categories.map((category) => <option value={category.id} key={category.id}>{category.label}</option>)}</select></label> : null}

@@ -1,10 +1,9 @@
 import type { FormEvent } from "react";
-import { ArrowUpRight, CalendarClock, CreditCard, Pencil, Plus, Trash2, UserRound, X } from "lucide-react";
+import { CalendarClock, CreditCard, Pencil, Plus, Trash2, UserRound, X } from "lucide-react";
 import { useState } from "react";
-import { deleteManualObligation, saveManualObligation } from "../api/customization";
+import { deleteManualObligation, saveCreditCardObligation, saveManualObligation } from "../api/customization";
 import { DataNotices, PageHeader } from "../components/PageChrome";
 import { formatMoney, formatShortDate } from "../lib/format";
-import { routeHref } from "../routes";
 import type { DashboardData } from "../types";
 import type { FinancePageProps } from "./types";
 
@@ -46,7 +45,7 @@ export function ObligationsPage({
 
     <section className="obligations-hero">
       <span>Общая задолженность</span><strong>{formatMoney(total, data.availableMoney.currency)}</strong>
-      <p>Обязательства не прибавляются к доступным деньгам. Для банковских карт баланс корректируется на странице счёта.</p>
+      <p>Обязательства не прибавляются к доступным деньгам. Долг, лимит, платёж и срок банковской карты настраиваются прямо здесь.</p>
       <button className="primary-button" type="button" onClick={() => setEditing("new")} disabled={!canWrite}>
         <Plus size={17} /> Новое обязательство
       </button>
@@ -55,21 +54,21 @@ export function ObligationsPage({
 
     <section className="obligation-grid">
       {data.obligations.map((obligation, index) => {
-        const editable = source === "demo" || obligation.source === "manual";
+        const isManual = obligation.source === "manual";
         return <article className={`obligation-card obligation-card-${(index % 3) + 1}`} key={obligation.id}>
           <span className="obligation-card-icon" aria-hidden="true"><CreditCard size={22} strokeWidth={1.7} /></span>
           <div className="obligation-card-title"><h2>{obligation.name}</h2><span><UserRound size={14} strokeWidth={1.8} aria-hidden="true" />{obligation.owner}</span></div>
-          {editable ? (
-            <div className="obligation-actions">
-              <button
-                className="text-button obligation-edit"
-                type="button"
-                onClick={() => setEditing(obligation)}
-                disabled={!canWrite}
-                aria-label={`Настроить обязательство ${obligation.name}`}
-              >
-                <Pencil size={14} aria-hidden="true" />Настроить
-              </button>
+          <div className="obligation-actions">
+            <button
+              className="text-button obligation-edit"
+              type="button"
+              onClick={() => setEditing(obligation)}
+              disabled={!canWrite}
+              aria-label={`Настроить обязательство ${obligation.name}`}
+            >
+              <Pencil size={14} aria-hidden="true" />Настроить
+            </button>
+            {isManual ? (
               <button
                 className="danger-button obligation-delete"
                 type="button"
@@ -79,20 +78,13 @@ export function ObligationsPage({
               >
                 <Trash2 size={14} aria-hidden="true" />Удалить
               </button>
-            </div>
-          ) : obligation.accountKey ? (
-            <a
-              className="text-button obligation-edit"
-              href={routeHref("accounts")}
-              aria-label={`Настроить связанный счёт для ${obligation.name}`}
-            >
-              <Pencil size={14} aria-hidden="true" />Настроить счёт <ArrowUpRight size={13} aria-hidden="true" />
-            </a>
-          ) : null}
+            ) : null}
+          </div>
           <strong className="obligation-debt">{formatMoney(obligation.debtMinor, obligation.currency)}</strong>
           <dl>
             {obligation.minimumPaymentMinor ? <div><dt>Минимальный платёж</dt><dd>{formatMoney(obligation.minimumPaymentMinor, obligation.currency)}</dd></div> : null}
             {obligation.dueDate ? <div><dt><CalendarClock size={14} strokeWidth={1.8} aria-hidden="true" />Срок</dt><dd>{formatShortDate(obligation.dueDate)}</dd></div> : null}
+            {obligation.creditLimitMinor != null ? <div><dt>Кредитный лимит</dt><dd>{formatMoney(obligation.creditLimitMinor, obligation.currency)}</dd></div> : null}
             {obligation.availableCreditMinor != null ? <div><dt>Доступный лимит</dt><dd>{formatMoney(obligation.availableCreditMinor, obligation.currency)}</dd></div> : null}
             {obligation.note ? <div><dt>Комментарий</dt><dd>{obligation.note}</dd></div> : null}
           </dl>
@@ -100,7 +92,7 @@ export function ObligationsPage({
       })}
     </section>
 
-    {editing ? <ObligationDialog
+    {editing && (editing === "new" || editing.source === "manual") ? <ObligationDialog
       obligation={editing === "new" ? null : editing}
       data={data}
       activeUserKey={activeUserKey || data.people[0]?.key || ""}
@@ -120,6 +112,30 @@ export function ObligationsPage({
             currency: obligation.currency, min_payment_cents: obligation.minimumPaymentMinor,
             due_date: obligation.dueDate, recurrence: obligation.recurrence || "monthly",
             account_key: obligation.accountKey || null, note: obligation.note || null,
+          });
+          setEditing(null);
+          if (source === "api") onRefresh?.();
+        } finally { setSaving(false); }
+      }}
+    /> : null}
+    {editing && editing !== "new" && editing.source !== "manual" ? <CreditCardObligationDialog
+      obligation={editing}
+      people={data.people}
+      saving={saving}
+      onClose={() => setEditing(null)}
+      onSave={async (obligation) => {
+        if (!canWrite) return;
+        setSaving(true);
+        try {
+          if (source === "demo") updateDemo(obligation);
+          else await saveCreditCardObligation(obligation.id, {
+            name: obligation.name,
+            owner_person_key: obligation.ownerKey || activeUserKey || data.people[0]?.key || "",
+            debt_cents: obligation.debtMinor,
+            credit_limit_cents: obligation.creditLimitMinor,
+            min_payment_cents: obligation.minimumPaymentMinor,
+            due_date: obligation.dueDate,
+            note: obligation.note || null,
           });
           setEditing(null);
           if (source === "api") onRefresh?.();
@@ -195,7 +211,7 @@ function ObligationDialog({ obligation, data, activeUserKey, saving, onClose, on
         id: obligation?.id ?? `manual:obligation-${Date.now()}`,
         name: name.trim(), owner: person?.name || owner, ownerKey: owner, source: "manual", debtMinor,
         currency: obligation?.currency || data.availableMoney.currency,
-        minimumPaymentMinor: minimumMinor, dueDate: dueDate || null, availableCreditMinor: null,
+        minimumPaymentMinor: minimumMinor, dueDate: dueDate || null, creditLimitMinor: null, availableCreditMinor: null,
         recurrence, accountKey: accountKey || null, note: note.trim() || null,
       });
     } catch (saveError) {
@@ -212,6 +228,73 @@ function ObligationDialog({ obligation, data, activeUserKey, saving, onClose, on
       <label><span>Комментарий</span><input value={note} onChange={(event) => setNote(event.target.value)} placeholder="Необязательно" /></label>
       {error ? <p className="product-dialog-error" role="alert">{error}</p> : null}
       <footer>{onDelete ? <button className="danger-button" type="button" onClick={() => void onDelete()} disabled={saving}><Trash2 size={16} />Удалить</button> : <span />}<button className="primary-button" type="submit" disabled={saving}>{saving ? "Сохраняю" : "Сохранить"}</button></footer>
+    </form>
+  </div>;
+}
+
+function CreditCardObligationDialog({ obligation, people, saving, onClose, onSave }: {
+  obligation: Obligation;
+  people: DashboardData["people"];
+  saving: boolean;
+  onClose: () => void;
+  onSave: (obligation: Obligation) => Promise<void>;
+}) {
+  const [name, setName] = useState(obligation.name);
+  const [owner, setOwner] = useState(obligation.ownerKey || people.find((person) => person.name === obligation.owner)?.key || people[0]?.key || "");
+  const [debt, setDebt] = useState(String(obligation.debtMinor / 100));
+  const [creditLimit, setCreditLimit] = useState(obligation.creditLimitMinor != null ? String(obligation.creditLimitMinor / 100) : "");
+  const [minimum, setMinimum] = useState(obligation.minimumPaymentMinor != null ? String(obligation.minimumPaymentMinor / 100) : "");
+  const [dueDate, setDueDate] = useState(obligation.dueDate ?? "");
+  const [note, setNote] = useState(obligation.note ?? "");
+  const [error, setError] = useState<string | null>(null);
+
+  const submit = async (event: FormEvent) => {
+    event.preventDefault();
+    const debtMinor = Math.round(Number(debt.replace(",", ".")) * 100);
+    const creditLimitMinor = creditLimit.trim() ? Math.round(Number(creditLimit.replace(",", ".")) * 100) : null;
+    const minimumMinor = minimum.trim() ? Math.round(Number(minimum.replace(",", ".")) * 100) : null;
+    const values = [debtMinor, creditLimitMinor, minimumMinor].filter((value): value is number => value !== null);
+    if (!name.trim() || !owner || values.some((value) => !Number.isFinite(value) || value < 0)) {
+      setError("Проверьте название, владельца и суммы: они не могут быть отрицательными.");
+      return;
+    }
+    if (minimumMinor && !dueDate) {
+      setError("Укажите дату, если задан минимальный платёж.");
+      return;
+    }
+    const person = people.find((item) => item.key === owner);
+    try {
+      setError(null);
+      await onSave({
+        ...obligation,
+        name: name.trim(),
+        owner: person?.name || owner,
+        ownerKey: owner,
+        source: "credit_card",
+        debtMinor,
+        creditLimitMinor,
+        availableCreditMinor: creditLimitMinor === null ? null : Math.max(0, creditLimitMinor - debtMinor),
+        minimumPaymentMinor: minimumMinor,
+        dueDate: dueDate || null,
+        recurrence: "monthly",
+        note: note.trim() || null,
+      });
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : "Не удалось сохранить настройки карты. Повторите попытку.");
+    }
+  };
+
+  return <div className="sheet-layer" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
+    <form className="product-dialog" onSubmit={submit}>
+      <header><div><h2>Настроить банковскую карту</h2><p>Долг корректирует остаток связанного кредитного счёта отдельной операцией. Лимит, платёж и срок используются в плане.</p></div><button className="icon-button" type="button" onClick={onClose} aria-label="Закрыть"><X size={18} /></button></header>
+      <label><span>Название</span><input value={name} onChange={(event) => { setName(event.target.value); setError(null); }} required autoFocus /></label>
+      <div className="form-split"><label><span>Владелец</span><select aria-label="Владелец карты" value={owner} onChange={(event) => { setOwner(event.target.value); setError(null); }} required>{people.map((person) => <option value={person.key} key={person.key}>{person.name}</option>)}</select></label><label><span>Текущий долг, ₽</span><input aria-label="Текущий долг карты, ₽" inputMode="decimal" value={debt} onChange={(event) => { setDebt(event.target.value); setError(null); }} /></label></div>
+      <div className="form-split"><label><span>Кредитный лимит, ₽</span><input aria-label="Кредитный лимит, ₽" inputMode="decimal" value={creditLimit} onChange={(event) => { setCreditLimit(event.target.value); setError(null); }} placeholder="Необязательно" /></label><label><span>Минимальный платёж, ₽</span><input aria-label="Минимальный платёж карты, ₽" inputMode="decimal" value={minimum} onChange={(event) => { setMinimum(event.target.value); setError(null); }} placeholder="Необязательно" /></label></div>
+      <label><span>Дата платежа</span><input aria-label="Дата платежа карты" type="date" value={dueDate} onChange={(event) => { setDueDate(event.target.value); setError(null); }} /></label>
+      <label><span>Комментарий</span><input value={note} onChange={(event) => setNote(event.target.value)} placeholder="Например, платёж за месяц уже внесён" /></label>
+      {obligation.accountKey ? <p className="form-linked-account">Связанный счёт: <strong>{obligation.accountKey}</strong></p> : null}
+      {error ? <p className="product-dialog-error" role="alert">{error}</p> : null}
+      <footer><span /><button className="primary-button" type="submit" disabled={saving}>{saving ? "Сохраняю" : "Сохранить"}</button></footer>
     </form>
   </div>;
 }

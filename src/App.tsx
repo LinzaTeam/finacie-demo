@@ -238,20 +238,44 @@ export function App() {
       const isIncome = operation.kind === "income";
       const isExpense = operation.transactionKind === "card_payment"
         || operation.transactionKind === "transfer_to_person";
+      const accountDeltas = new Map<string, number>();
+      if (operation.transactionKind === "income" && operation.accountToId) {
+        accountDeltas.set(operation.accountToId, operation.amountMinor);
+      } else if (operation.accountFromId) {
+        accountDeltas.set(operation.accountFromId, -operation.amountMinor);
+        if (operation.transactionKind === "own_transfer" && operation.accountToId) {
+          accountDeltas.set(operation.accountToId, operation.amountMinor);
+        }
+      }
+      const availableDelta = current.data.accounts.reduce((sum, account) => {
+        const delta = accountDeltas.get(account.id) ?? 0;
+        return account.group === "operating" || account.group === "cash" ? sum + delta : sum;
+      }, 0);
       return {
         ...current,
         data: {
           ...current.data,
           availableMoney: {
             ...current.data.availableMoney,
-            amountMinor: current.data.availableMoney.amountMinor
-              + (isIncome ? operation.amountMinor : isExpense ? -operation.amountMinor : 0),
+            amountMinor: current.data.availableMoney.amountMinor + availableDelta,
           },
           month: {
             ...current.data.month,
             incomeMinor: current.data.month.incomeMinor + (isIncome ? operation.amountMinor : 0),
             expenseMinor: current.data.month.expenseMinor + (isExpense ? operation.amountMinor : 0),
           },
+          accounts: current.data.accounts.map((account) => {
+            const delta = accountDeltas.get(account.id) ?? 0;
+            if (!delta) return account;
+            return {
+              ...account,
+              balanceMinor: account.balanceMinor + delta,
+              convertedBalanceMinor: account.currency === current.data.availableMoney.currency
+                ? (account.convertedBalanceMinor ?? account.balanceMinor) + delta
+                : account.convertedBalanceMinor,
+              updatedAt: new Date().toISOString(),
+            };
+          }),
           transactions: [transaction, ...current.data.transactions],
         },
       };

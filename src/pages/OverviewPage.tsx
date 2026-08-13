@@ -5,14 +5,20 @@ import {
   Plus,
 } from "lucide-react";
 import { BalanceHistoryChart } from "../components/BalanceHistoryChart";
+import { BalanceScopeToggle, useHideSavingsInTotal } from "../components/BalanceScopeToggle";
 import { AccountRow, TransactionRow } from "../components/FinanceRows";
 import { DataNotices, PageHeader, SectionTitle } from "../components/PageChrome";
+import { savingsBalanceMinor, totalBalanceMinor } from "../lib/accountBalances";
 import { formatDateTime, formatMoney, formatShortDate, formatSignedMoney } from "../lib/format";
 import { deriveFinancialHealth } from "../lib/financialHealth";
 import { routeHref } from "../routes";
 import type { FinancePageProps } from "./types";
 
 export function OverviewPage({ data, source, theme, onThemeToggle, onNewOperation, onSearch, activeUser, selectedPeriod, onPeriodChange, simpleMode = false }: FinancePageProps) {
+  const [hideSavings, setHideSavings] = useHideSavingsInTotal();
+  const savingsMinor = savingsBalanceMinor(data);
+  const displayedBalanceMinor = hideSavings ? data.availableMoney.amountMinor : totalBalanceMinor(data);
+
   if (simpleMode) {
     return <SimpleOverview
       data={data}
@@ -22,6 +28,10 @@ export function OverviewPage({ data, source, theme, onThemeToggle, onNewOperatio
       activeUser={activeUser}
       selectedPeriod={selectedPeriod}
       onPeriodChange={onPeriodChange}
+      hideSavings={hideSavings}
+      savingsMinor={savingsMinor}
+      displayedBalanceMinor={displayedBalanceMinor}
+      onHideSavingsChange={setHideSavings}
     />;
   }
 
@@ -67,9 +77,12 @@ export function OverviewPage({ data, source, theme, onThemeToggle, onNewOperatio
 
       <section className="balance-hero" aria-labelledby="available-money-title">
         <div className="balance-primary">
-          <span id="available-money-title">Свободно до {monthEndLabel}</span>
-          <strong>{formatMoney(data.availableMoney.amountMinor, baseCurrency)}</strong>
-          <p>Учтено {data.transactions.filter((item) => item.kind === "expense").length} расходов на {formatMoney(data.month.expenseMinor, data.month.currency)}</p>
+          <div className="balance-heading-row">
+            <span id="available-money-title">Общий баланс</span>
+            <BalanceScopeToggle checked={hideSavings} onChange={setHideSavings} disabled={savingsMinor === 0} />
+          </div>
+          <strong>{formatMoney(displayedBalanceMinor, baseCurrency)}</strong>
+          <p>Для трат до {monthEndLabel} доступно {formatMoney(data.availableMoney.amountMinor, baseCurrency)}</p>
           <span className={data.availableMoney.changeMinor >= 0 ? "balance-delta positive" : "balance-delta negative"}>
             <ArrowUpRight size={16} strokeWidth={2} aria-hidden="true" />
             {formatSignedMoney(data.availableMoney.changeMinor, baseCurrency)} {data.availableMoney.changeLabel}
@@ -100,11 +113,11 @@ export function OverviewPage({ data, source, theme, onThemeToggle, onNewOperatio
           </div>
           <span>
             Сейчас
-            <strong>{formatMoney(data.availableMoney.amountMinor, baseCurrency)}</strong>
+            <strong>{formatMoney(displayedBalanceMinor, baseCurrency)}</strong>
           </span>
         </div>
         <BalanceHistoryChart
-          currentBalanceMinor={data.availableMoney.amountMinor}
+          currentBalanceMinor={displayedBalanceMinor}
           currency={baseCurrency}
           generatedAt={data.meta.generatedAt}
           period={selectedPeriod}
@@ -185,7 +198,16 @@ function SimpleOverview({
   activeUser,
   selectedPeriod,
   onPeriodChange,
-}: Pick<FinancePageProps, "data" | "theme" | "onThemeToggle" | "onNewOperation" | "activeUser" | "selectedPeriod" | "onPeriodChange">) {
+  hideSavings,
+  savingsMinor,
+  displayedBalanceMinor,
+  onHideSavingsChange,
+}: Pick<FinancePageProps, "data" | "theme" | "onThemeToggle" | "onNewOperation" | "activeUser" | "selectedPeriod" | "onPeriodChange"> & {
+  hideSavings: boolean;
+  savingsMinor: number;
+  displayedBalanceMinor: number;
+  onHideSavingsChange: (value: boolean) => void;
+}) {
   const currency = data.availableMoney.currency;
   const net = data.month.incomeMinor - data.month.expenseMinor;
 
@@ -208,9 +230,12 @@ function SimpleOverview({
 
       <section className="simple-balance panel" aria-labelledby="simple-balance-title">
         <div>
-          <span id="simple-balance-title">Доступно сейчас</span>
-          <strong>{formatMoney(data.availableMoney.amountMinor, currency)}</strong>
-          <p>{net >= 0 ? "За период поступило больше, чем потрачено" : "За период потрачено больше, чем поступило"}</p>
+          <div className="balance-heading-row">
+            <span id="simple-balance-title">Общий баланс</span>
+            <BalanceScopeToggle checked={hideSavings} onChange={onHideSavingsChange} disabled={savingsMinor === 0} />
+          </div>
+          <strong>{formatMoney(displayedBalanceMinor, currency)}</strong>
+          <p>На рабочих счетах и в наличных доступно {formatMoney(data.availableMoney.amountMinor, currency)}. {net >= 0 ? "За период поступило больше, чем потрачено." : "За период потрачено больше, чем поступило."}</p>
         </div>
         <button className="primary-button simple-add-button" type="button" onClick={onNewOperation}>
           <Plus size={17} strokeWidth={2} aria-hidden="true" />

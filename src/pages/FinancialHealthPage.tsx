@@ -77,9 +77,14 @@ export function FinancialHealthPage({
         <p className="health-panel-intro">Вероятность × ущерб по шкале 1–5. Красная зона требует действия, жёлтая — плана и владельца.</p>
         <RiskMatrix risks={health.risks} />
         <ol className="health-risk-list">
-          {health.risks.map((risk) => <li key={risk.id}>
+          {health.risks.map((risk) => <li id={`health-risk-${risk.id}`} key={risk.id}>
             <span className={`health-risk-badge health-risk-${risk.tone}`}>{risk.score}</span>
-            <div><strong>{risk.title}</strong><small>{risk.detail}</small><em>{risk.action}</em></div>
+            <div>
+              <strong>{risk.title}</strong>
+              <span className="health-risk-formula">Вероятность {risk.probability} × ущерб {risk.impact} = {risk.score}</span>
+              <small>{risk.detail}</small>
+              <em>{risk.action}</em>
+            </div>
           </li>)}
         </ol>
       </article>
@@ -140,16 +145,43 @@ function formatRoundedSignedMoney(value: number, currency: string): string {
 function RiskMatrix({ risks }: { risks: HealthRisk[] }) {
   return <div className="health-risk-map-wrap">
     <span className="health-risk-axis health-risk-axis-y">Ущерб</span>
-    <div className="health-risk-map" role="img" aria-label="Матрица рисков: вероятность по горизонтали, ущерб по вертикали">
+    <div className="health-risk-map" role="grid" aria-label="Матрица рисков: вероятность по горизонтали, ущерб по вертикали">
       {[5, 4, 3, 2, 1].flatMap((impact) => [1, 2, 3, 4, 5].map((probability) => {
-        const active = risks.find((risk) => risk.probability === probability && risk.impact === impact);
+        const active = risks.filter((risk) => risk.probability === probability && risk.impact === impact);
         const score = probability * impact;
         const tone = score >= 15 ? "red" : score >= 7 ? "yellow" : "green";
-        return <span className={`health-risk-cell health-risk-cell-${tone}`} key={`${probability}-${impact}`} title={`Вероятность ${probability}, ущерб ${impact}`}>
-          {active ? <b aria-label={`${active.title}: ${active.score} баллов`}>{active.score}</b> : null}
+        const activeNames = active.map((risk) => risk.title).join(", ");
+        return <span
+          className={`health-risk-cell health-risk-cell-${tone}`}
+          role="gridcell"
+          aria-label={`Вероятность ${probability}, ущерб ${impact}${activeNames ? `: ${activeNames}` : ", рисков нет"}`}
+          key={`${probability}-${impact}`}
+        >
+          {active.length ? <span className="health-risk-marker-stack">{active.map((risk) => (
+            <a
+              className={`health-risk-marker health-risk-marker-${risk.tone}`}
+              href={`#health-risk-${risk.id}`}
+              aria-label={`${risk.title}: вероятность ${risk.probability}, ущерб ${risk.impact}, оценка ${risk.score}`}
+              key={risk.id}
+            >
+              <span>{shortRiskTitle(risk)}</span><b>{risk.score}</b>
+            </a>
+          ))}</span> : null}
         </span>;
       }))}
     </div>
     <div className="health-risk-axis-x"><span>Вероятность</span><small>1</small><small>2</small><small>3</small><small>4</small><small>5</small></div>
   </div>;
+}
+
+function shortRiskTitle(risk: HealthRisk): string {
+  const labels: Record<string, string> = {
+    reserve: "Резерв",
+    cashflow: "Поток",
+    commitments: "Платежи",
+    debt: "Долг",
+    plan: "План",
+    monitoring: "Норма",
+  };
+  return labels[risk.id] || risk.title;
 }

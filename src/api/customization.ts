@@ -97,6 +97,16 @@ export type ManualObligationInput = {
   note: string | null;
 };
 
+export type CreditCardObligationInput = {
+  name: string;
+  owner_person_key: string;
+  debt_cents: number;
+  credit_limit_cents: number | null;
+  min_payment_cents: number | null;
+  due_date: string | null;
+  note: string | null;
+};
+
 export type MonthlyCategoryBudgetEntry = {
   person_key: string;
   category_key: string;
@@ -185,6 +195,10 @@ export function saveManualObligation(obligationId: string, input: ManualObligati
 
 export function deleteManualObligation(obligationId: string): Promise<void> {
   return writeJson(`/api/v1/obligations/${encodeURIComponent(obligationId)}`, "DELETE");
+}
+
+export function saveCreditCardObligation(cardKey: string, input: CreditCardObligationInput): Promise<void> {
+  return writeJson(`/api/v1/credit-card-obligations/${encodeURIComponent(cardKey)}`, "PUT", input, true);
 }
 
 export async function getBugReports(status?: BugReportStatus): Promise<BugReport[]> {

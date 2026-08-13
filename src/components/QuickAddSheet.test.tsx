@@ -32,6 +32,20 @@ const accounts = [
     color: "#364C84",
     avatarDataUrl: null,
   },
+  {
+    id: "reserve",
+    name: "Семейный резерв",
+    group: "savings" as const,
+    balanceMinor: 30_000_00,
+    currency: "RUB",
+    convertedBalanceMinor: 30_000_00,
+    updatedAt: "2026-08-12T12:00:00+03:00",
+    ownerKey: "person-1",
+    ownerName: "Участник 1",
+    iconKey: "piggy-bank",
+    color: "#E7F1AB",
+    avatarDataUrl: null,
+  },
 ];
 const people = [
   { key: "person-1", name: "Участник 1", avatarDataUrl: null, accentColor: "#364C84" },
@@ -166,6 +180,32 @@ describe("natural operation input", () => {
     fireEvent.change(screen.getByLabelText("Напишите как есть"), { target: { value: "Кофе 420 с Т-Банк" } });
     fireEvent.click(screen.getByRole("button", { name: "Готово" }));
     await waitFor(() => expect(onAdd).toHaveBeenCalledWith(expect.objectContaining({ subjectKey: "person-2" })));
+  });
+
+  it("allows a savings account to be selected for an expense", async () => {
+    const onAdd = vi.fn();
+    render(
+      <QuickAddSheet
+        open
+        source="demo"
+        accounts={accounts}
+        categories={categories}
+        currency="RUB"
+        canWrite
+        actorName="Участник 1"
+        actorKey="person-1"
+        people={people}
+        onClose={vi.fn()}
+        onAdd={onAdd}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText("Напишите как есть"), { target: { value: "Продукты 500" } });
+    expect(screen.getByRole("option", { name: "Семейный резерв · Накопительный счёт" })).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("Основной счёт"), { target: { value: "reserve" } });
+    fireEvent.click(screen.getByRole("button", { name: "Готово" }));
+
+    await waitFor(() => expect(onAdd).toHaveBeenCalledWith(expect.objectContaining({ accountFromId: "reserve" })));
   });
 
   it("keeps every reviewed field inside the stable two-column row layout", () => {

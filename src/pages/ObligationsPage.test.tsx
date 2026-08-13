@@ -13,6 +13,7 @@ const manualObligation = {
   currency: "RUB",
   minimumPaymentMinor: 4_000_00,
   dueDate: "2026-08-20",
+  creditLimitMinor: null,
   availableCreditMinor: null,
   recurrence: "monthly" as const,
   accountKey: "tbank",
@@ -29,6 +30,7 @@ const cardObligation = {
   currency: "RUB",
   minimumPaymentMinor: 3_500_00,
   dueDate: "2026-08-22",
+  creditLimitMinor: 100_000_00,
   availableCreditMinor: 75_500_00,
   recurrence: "monthly" as const,
   accountKey: "tbank",
@@ -87,12 +89,31 @@ describe("obligations page", () => {
     }));
   });
 
-  it("sends credit-card management to the linked account and disables writes in read-only mode", () => {
+  it("configures a linked credit card directly from the obligation card", () => {
+    const onDataChange = vi.fn();
+    render(<ObligationsPage {...pageProps()} onDataChange={onDataChange} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Настроить обязательство Кредитная карта Т-Банк" }));
+    fireEvent.change(screen.getByLabelText("Текущий долг карты, ₽"), { target: { value: "26000" } });
+    fireEvent.change(screen.getByLabelText("Кредитный лимит, ₽"), { target: { value: "110000" } });
+    fireEvent.click(screen.getByRole("button", { name: "Сохранить" }));
+
+    expect(onDataChange).toHaveBeenCalledWith(expect.objectContaining({
+      obligations: expect.arrayContaining([expect.objectContaining({
+        id: "credit:tbank",
+        debtMinor: 26_000_00,
+        creditLimitMinor: 110_000_00,
+        availableCreditMinor: 84_000_00,
+      })]),
+    }));
+  });
+
+  it("disables all obligation writes in read-only mode", () => {
     render(<ObligationsPage {...pageProps(false, "api")} />);
 
     expect(screen.getByRole("button", { name: "Новое обязательство" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Настроить обязательство Рассрочка за технику" })).toBeDisabled();
-    expect(screen.getByRole("link", { name: "Настроить связанный счёт для Кредитная карта Т-Банк" })).toHaveAttribute("href", "#/accounts");
+    expect(screen.getByRole("button", { name: "Настроить обязательство Кредитная карта Т-Банк" })).toBeDisabled();
   });
 
   it("shows a direct, confirmed deletion flow for demo obligations", () => {

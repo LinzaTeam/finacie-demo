@@ -90,7 +90,7 @@ export function GlobalSearchDialog({ open, data, onClose }: GlobalSearchDialogPr
             aria-label="Поиск по операциям, счетам и обязательствам"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Кофе, продукты, счёт или обязательство"
+            placeholder="Кофе, продукты или счёт"
           />
           <kbd>ESC</kbd>
         </label>

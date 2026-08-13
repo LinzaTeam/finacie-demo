@@ -15,6 +15,20 @@ export type WebSession = {
   csrfToken: string | null;
 };
 
+export type AuthConfig = {
+  telegram_auth_enabled: boolean;
+  telegram_bot_username: string | null;
+  telegram_login_url: string | null;
+  public_url: string | null;
+};
+
+export class SessionApiError extends Error {
+  constructor(public readonly status: number, message: string) {
+    super(message);
+    this.name = "SessionApiError";
+  }
+}
+
 declare global {
   interface Window {
     Telegram?: {
@@ -42,7 +56,7 @@ async function readSession(signal?: AbortSignal): Promise<WebSession> {
     credentials: "same-origin",
     signal,
   });
-  if (!response.ok) throw new Error(`Session API returned ${response.status}`);
+  if (!response.ok) throw new SessionApiError(response.status, `Session API returned ${response.status}`);
   const payload = await response.json() as Omit<WebSession, "csrfToken">;
   return {
     ...payload,
@@ -55,6 +69,7 @@ export async function getOrCreateSession(signal?: AbortSignal): Promise<WebSessi
     return await readSession(signal);
   } catch (error) {
     if (signal?.aborted) throw error;
+    if (!(error instanceof SessionApiError) || error.status !== 401) throw error;
   }
 
   const telegram = window.Telegram?.WebApp;
@@ -69,13 +84,47 @@ export async function getOrCreateSession(signal?: AbortSignal): Promise<WebSessi
     body: JSON.stringify({ init_data: initData }),
     signal,
   });
-  if (!response.ok) throw new Error(`Telegram login returned ${response.status}`);
+  if (!response.ok) {
+    let detail = `Telegram login returned ${response.status}`;
+    try {
+      const payload = await response.json() as { detail?: string };
+      if (payload.detail) detail = payload.detail;
+    } catch {
+      // The status code still gives the UI a safe fallback message.
+    }
+    throw new SessionApiError(response.status, detail);
+  }
   const login = await response.json() as {
     user: WebSession["user"];
     csrf_token: string;
   };
   window.sessionStorage.setItem(CSRF_STORAGE_KEY, login.csrf_token);
   return readSession(signal);
+}
+
+export async function getAuthConfig(signal?: AbortSignal): Promise<AuthConfig> {
+  const response = await fetch("/api/v1/auth/config", {
+    headers: requestHeaders(),
+    credentials: "same-origin",
+    signal,
+  });
+  if (!response.ok) throw new SessionApiError(response.status, `Auth config returned ${response.status}`);
+  return response.json() as Promise<AuthConfig>;
+}
+
+export async function logoutSession(signal?: AbortSignal): Promise<void> {
+  const csrfToken = currentCsrfToken();
+  const response = await fetch("/api/v1/auth/logout", {
+    method: "POST",
+    headers: {
+      ...requestHeaders(),
+      ...(csrfToken ? { "X-Finance-CSRF": csrfToken } : {}),
+    },
+    credentials: "same-origin",
+    signal,
+  });
+  if (!response.ok) throw new SessionApiError(response.status, `Logout returned ${response.status}`);
+  window.sessionStorage.removeItem(CSRF_STORAGE_KEY);
 }
 
 export function currentCsrfToken(): string | null {

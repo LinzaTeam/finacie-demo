@@ -23,6 +23,11 @@ type RawDashboard = {
     net_cents: number;
     partial: boolean;
   };
+  planned?: {
+    income_cents: number;
+    expense_cents: number;
+    partial?: boolean;
+  };
   cashflow_partial?: boolean;
   categories: Array<{
     key?: string;
@@ -52,10 +57,30 @@ type RawDashboard = {
     key: string;
     name: string;
     owner: string;
+    owner_name?: string | null;
+    source?: "credit_card" | "manual";
     debt_cents: number;
+    currency?: string;
     available_credit_cents: number | null;
     min_payment_cents: number | null;
     due_date: string | null;
+    recurrence?: "once" | "monthly";
+    account_key?: string | null;
+    note?: string | null;
+  }>;
+  planned_payments?: Array<{
+    id: string;
+    name: string;
+    kind: "income" | "expense";
+    owner_key: string;
+    owner_name?: string | null;
+    amount_cents: number;
+    currency: string;
+    due_date: string;
+    recurrence?: "once" | "monthly";
+    account_key?: string | null;
+    category_key?: string | null;
+    note?: string | null;
   }>;
   recent_transactions: Array<{
     id: string | number;
@@ -177,7 +202,7 @@ export function normalizeDashboard(raw: RawDashboard): DashboardData {
       timezone: "Europe/Moscow",
       fx: {
         status:
-          raw.totals.partial || raw.month.partial || raw.cashflow_partial || missingCurrencies.length > 0
+          raw.totals.partial || raw.month.partial || raw.cashflow_partial || raw.planned?.partial || missingCurrencies.length > 0
             ? "partial"
             : "complete",
         missingCurrencies,
@@ -228,15 +253,40 @@ export function normalizeDashboard(raw: RawDashboard): DashboardData {
         color: account.color || "#95B1EE",
         avatarDataUrl: account.avatar_data_url || null,
       })),
+    plan: raw.planned ? {
+      budgetMinor: 0,
+      currency: raw.currency,
+      incomeMinor: raw.planned.income_cents,
+      expenseMinor: raw.planned.expense_cents,
+    } : undefined,
     obligations: raw.obligations.map((obligation) => ({
       id: obligation.key,
       name: obligation.name,
-      owner: normalizeOwner(obligation.owner),
+      owner: obligation.owner_name || normalizeOwner(obligation.owner),
+      ownerKey: obligation.owner,
+      source: obligation.source || "credit_card",
       debtMinor: obligation.debt_cents,
-      currency: raw.currency,
+      currency: obligation.currency || raw.currency,
       minimumPaymentMinor: obligation.min_payment_cents,
       dueDate: obligation.due_date,
       availableCreditMinor: obligation.available_credit_cents,
+      recurrence: obligation.recurrence || "monthly",
+      accountKey: obligation.account_key || null,
+      note: obligation.note || null,
+    })),
+    plannedPayments: (raw.planned_payments ?? []).map((payment) => ({
+      id: payment.id,
+      name: payment.name,
+      kind: payment.kind,
+      ownerKey: payment.owner_key,
+      ownerName: payment.owner_name || normalizeOwner(payment.owner_key),
+      amountMinor: payment.amount_cents,
+      currency: payment.currency,
+      dueDate: payment.due_date,
+      recurrence: payment.recurrence || "monthly",
+      accountKey: payment.account_key || null,
+      categoryKey: payment.category_key || null,
+      note: payment.note || null,
     })),
     transactions: raw.recent_transactions.map((transaction) => ({
       id: String(transaction.id),

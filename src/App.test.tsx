@@ -1,16 +1,46 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("./api/dashboard", () => ({ getDashboard: vi.fn() }));
+vi.mock("./api/session", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("./api/session")>();
+  return {
+    ...actual,
+    getOrCreateSession: vi.fn(),
+    getAuthConfig: vi.fn(),
+    logoutSession: vi.fn(),
+  };
+});
 
 import { App } from "./App";
 import { getDashboard } from "./api/dashboard";
+import { demoSession, getAuthConfig, getOrCreateSession } from "./api/session";
 import { demoDashboard } from "./data/demo";
 
 describe("app overlays", () => {
   beforeEach(() => {
+    vi.mocked(getOrCreateSession).mockResolvedValue(demoSession);
     vi.mocked(getDashboard).mockResolvedValue({ data: demoDashboard, source: "demo" });
     window.history.replaceState(null, "", "#/overview");
     document.body.style.overflow = "";
+  });
+
+  it("shows the secure Telegram entry instead of loading financial data without a session", async () => {
+    vi.mocked(getOrCreateSession).mockResolvedValueOnce(null);
+    vi.mocked(getAuthConfig).mockResolvedValueOnce({
+      telegram_auth_enabled: true,
+      telegram_bot_username: "family_finance_bot",
+      telegram_login_url: "https://t.me/family_finance_bot?startapp=finance",
+      public_url: "https://finance.example.test",
+    });
+
+    render(<App />);
+
+    expect(await screen.findByRole("heading", { name: /Деньги семьи/ })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Открыть в Telegram" })).toHaveAttribute(
+      "href",
+      "https://t.me/family_finance_bot?startapp=finance",
+    );
+    expect(getDashboard).not.toHaveBeenCalled();
   });
 
   it("replaces QuickAdd with global search on Ctrl+K and restores scrolling", async () => {

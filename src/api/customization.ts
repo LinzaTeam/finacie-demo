@@ -53,6 +53,31 @@ export type GoalInput = {
   color: string;
 };
 
+export type PlannedPaymentInput = {
+  name: string;
+  kind: "income" | "expense";
+  owner_person_key: string;
+  amount_cents: number;
+  currency: string;
+  due_date: string;
+  recurrence: "once" | "monthly";
+  account_key: string | null;
+  category_key: string | null;
+  note: string | null;
+};
+
+export type ManualObligationInput = {
+  name: string;
+  owner_person_key: string;
+  debt_cents: number;
+  currency: string;
+  min_payment_cents: number | null;
+  due_date: string | null;
+  recurrence: "once" | "monthly";
+  account_key: string | null;
+  note: string | null;
+};
+
 export function saveProfile(personKey: string, input: ProfileInput): Promise<void> {
   return writeJson(`/api/v1/profiles/${encodeURIComponent(personKey)}`, "PATCH", input);
 }
@@ -89,4 +114,20 @@ export function saveGoal(goalId: string, input: GoalInput): Promise<void> {
 
 export function deleteGoal(goalId: string): Promise<void> {
   return writeJson(`/api/v1/goals/${encodeURIComponent(goalId)}`, "DELETE");
+}
+
+export function savePlannedPayment(paymentId: string, input: PlannedPaymentInput): Promise<void> {
+  return writeJson(`/api/v1/planned-payments/${encodeURIComponent(paymentId)}`, "PUT", input);
+}
+
+export function deletePlannedPayment(paymentId: string): Promise<void> {
+  return writeJson(`/api/v1/planned-payments/${encodeURIComponent(paymentId)}`, "DELETE");
+}
+
+export function saveManualObligation(obligationId: string, input: ManualObligationInput): Promise<void> {
+  return writeJson(`/api/v1/obligations/${encodeURIComponent(obligationId)}`, "PUT", input);
+}
+
+export function deleteManualObligation(obligationId: string): Promise<void> {
+  return writeJson(`/api/v1/obligations/${encodeURIComponent(obligationId)}`, "DELETE");
 }

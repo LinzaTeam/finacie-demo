@@ -1,10 +1,10 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { demoDashboard } from "../data/demo";
 import { PlanPage } from "./PlanPage";
 
 describe("plan page", () => {
-  it("does not invent a remaining budget when no plan is configured", () => {
+  it("keeps an empty planning state explicit", () => {
     const data = { ...demoDashboard, plan: undefined };
 
     render(
@@ -21,11 +21,11 @@ describe("plan page", () => {
       />,
     );
 
-    expect(screen.getByText("Лимит не задан")).toBeInTheDocument();
-    expect(screen.getByText("Задайте месячный бюджет, чтобы видеть остаток")).toBeInTheDocument();
+    expect(screen.getByText("Не задан")).toBeInTheDocument();
+    expect(screen.getByText("Добавьте регулярные и разовые расходы ниже")).toBeInTheDocument();
   });
 
-  it("shows category spending without invented category limits", () => {
+  it("shows categories and planned payments separately", () => {
     render(
       <PlanPage
         data={demoDashboard}
@@ -40,7 +40,36 @@ describe("plan page", () => {
       />,
     );
 
-    expect(screen.queryAllByText(/^из /)).toHaveLength(0);
-    expect(screen.getAllByText("потрачено").length).toBe(demoDashboard.categories.length);
+    expect(screen.getAllByText("за период").length).toBe(demoDashboard.categories.length);
+    expect(screen.getByText("Облачный сервис")).toBeInTheDocument();
+  });
+
+  it("adds a planned payment to the caller data in demo mode", () => {
+    const onDataChange = vi.fn();
+    render(
+      <PlanPage
+        data={demoDashboard}
+        source="demo"
+        theme="light"
+        onThemeToggle={vi.fn()}
+        onNewOperation={vi.fn()}
+        onSearch={vi.fn()}
+        activeUser="Участник 1"
+        activeUserKey="person-1"
+        selectedPeriod="2026-08"
+        onPeriodChange={vi.fn()}
+        onDataChange={onDataChange}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Платёж или доход" }));
+    fireEvent.change(screen.getByLabelText("Название"), { target: { value: "Страховка" } });
+    fireEvent.change(screen.getByLabelText("Сумма, ₽"), { target: { value: "1250" } });
+    fireEvent.change(screen.getByLabelText("Дата"), { target: { value: "2026-08-28" } });
+    fireEvent.click(screen.getByRole("button", { name: "Сохранить" }));
+
+    expect(onDataChange).toHaveBeenCalledWith(expect.objectContaining({
+      plannedPayments: expect.arrayContaining([expect.objectContaining({ name: "Страховка", amountMinor: 125_000 })]),
+    }));
   });
 });

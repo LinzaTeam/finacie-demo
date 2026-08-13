@@ -30,6 +30,8 @@ export type DashboardData = {
   plan?: {
     budgetMinor: number;
     currency: CurrencyCode;
+    incomeMinor?: number;
+    expenseMinor?: number;
   };
   cashflow: Array<{
     date: string;
@@ -63,11 +65,30 @@ export type DashboardData = {
     id: string;
     name: string;
     owner: string;
+    ownerKey?: string;
+    source?: "credit_card" | "manual";
     debtMinor: number;
     currency: CurrencyCode;
     minimumPaymentMinor: number | null;
     dueDate: string | null;
     availableCreditMinor: number | null;
+    recurrence?: "once" | "monthly";
+    accountKey?: string | null;
+    note?: string | null;
+  }>;
+  plannedPayments: Array<{
+    id: string;
+    name: string;
+    kind: "income" | "expense";
+    ownerKey: string;
+    ownerName: string;
+    amountMinor: number;
+    currency: CurrencyCode;
+    dueDate: string;
+    recurrence: "once" | "monthly";
+    accountKey: string | null;
+    categoryKey: string | null;
+    note: string | null;
   }>;
   transactions: Array<{
     id: string;
@@ -126,6 +147,7 @@ export function isDashboardData(value: unknown): value is DashboardData {
       Array.isArray(data.categories) &&
       Array.isArray(data.accounts) &&
       Array.isArray(data.obligations) &&
+      Array.isArray(data.plannedPayments) &&
       Array.isArray(data.transactions) &&
       Array.isArray(data.people) &&
       Array.isArray(data.goals),

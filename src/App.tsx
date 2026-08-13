@@ -1,6 +1,14 @@
 import { useCallback, useEffect, useState } from "react";
 import { getDashboard, type DashboardSource } from "./api/dashboard";
-import { demoSession, getOrCreateSession, type WebSession } from "./api/session";
+import {
+  demoSession,
+  getAuthConfig,
+  getOrCreateSession,
+  logoutSession,
+  SessionApiError,
+  type AuthConfig,
+  type WebSession,
+} from "./api/session";
 import { createTransaction } from "./api/transactions";
 import { BottomNavigation, Sidebar } from "./components/Navigation";
 import { GlobalSearchDialog } from "./components/GlobalSearchDialog";
@@ -11,6 +19,7 @@ import { currentPeriodKey, dateForPeriod } from "./lib/period";
 import { AccountsPage } from "./pages/AccountsPage";
 import { AnalyticsPage } from "./pages/AnalyticsPage";
 import { GoalsPage } from "./pages/GoalsPage";
+import { LoginPage } from "./pages/LoginPage";
 import { ObligationsPage } from "./pages/ObligationsPage";
 import { OperationsPage } from "./pages/OperationsPage";
 import { OverviewPage } from "./pages/OverviewPage";
@@ -24,7 +33,8 @@ import type { DashboardData } from "./types";
 type LoadState =
   | { status: "loading" }
   | { status: "error" }
-  | { status: "ready"; data: DashboardData; source: DashboardSource; session: WebSession | null };
+  | { status: "unauthenticated"; config: AuthConfig; message?: string }
+  | { status: "ready"; data: DashboardData; source: DashboardSource; session: WebSession };
 
 function isEmptyDashboard(data: DashboardData): boolean {
   return (
@@ -63,8 +73,10 @@ export function App() {
   }, []);
 
   useEffect(() => {
-    document.title = `${routeTitle(route)} | Финансье`;
-  }, [route]);
+    document.title = state.status === "unauthenticated"
+      ? "Вход | Финансье"
+      : `${routeTitle(route)} | Финансье`;
+  }, [route, state.status]);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -91,16 +103,36 @@ export function App() {
     setState({ status: "loading" });
     getOrCreateSession(controller.signal)
       .then(async (session) => {
+        if (!session && import.meta.env.VITE_FINANCE_DEMO !== "true") {
+          const config = await getAuthConfig(controller.signal);
+          setState({ status: "unauthenticated", config });
+          return;
+        }
         const { data, source } = await getDashboard(selectedPeriod, controller.signal);
         setState({
           status: "ready",
           data,
           source,
-          session: source === "demo" ? demoSession : session,
+          session: source === "demo" ? demoSession : session || demoSession,
         });
       })
-      .catch((error: unknown) => {
+      .catch(async (error: unknown) => {
         if (error instanceof DOMException && error.name === "AbortError") return;
+        if (error instanceof SessionApiError && (error.status === 401 || error.status === 403)) {
+          try {
+            const config = await getAuthConfig(controller.signal);
+            setState({
+              status: "unauthenticated",
+              config,
+              message: error.status === 403
+                ? "Этот Telegram-профиль ещё не привязан к участнику семьи. Сначала подтвердите профиль в боте."
+                : undefined,
+            });
+            return;
+          } catch {
+            // The generic connection screen below remains the safest fallback.
+          }
+        }
         setState({ status: "error" });
       });
     return () => controller.abort();
@@ -123,6 +155,16 @@ export function App() {
     setQuickAddOpen(false);
     setSearchOpen(false);
     setSelectedPeriod(period);
+  }, []);
+
+  const logout = useCallback(async () => {
+    try {
+      await logoutSession();
+    } finally {
+      setQuickAddOpen(false);
+      setSearchOpen(false);
+      setAttempt((value) => value + 1);
+    }
   }, []);
 
   const addDemoOperation = useCallback((operation: ParsedOperation) => {
@@ -245,6 +287,18 @@ export function App() {
     }
   }
 
+  if (state.status === "unauthenticated") {
+    return (
+      <LoginPage
+        config={state.config}
+        theme={theme}
+        message={state.message}
+        onRetry={() => setAttempt((value) => value + 1)}
+        onThemeToggle={toggleTheme}
+      />
+    );
+  }
+
   return (
     <div className="app-shell">
       <a
@@ -268,6 +322,7 @@ export function App() {
           avatarDataUrl: activePerson?.avatarDataUrl || ready.session.user.avatar_data_url,
           accentColor: activePerson?.accentColor || ready.session.user.accent_color,
         } : undefined}
+        onLogout={ready?.session.user.auth_method === "telegram_webapp" ? logout : undefined}
       />
       <div className="content-shell">
         {state.status === "loading" ? <LoadingDashboard /> : null}
@@ -275,7 +330,7 @@ export function App() {
         {ready && isEmptyDashboard(ready.data) ? <EmptyDashboard /> : null}
         {ready && !isEmptyDashboard(ready.data) ? page : null}
       </div>
-      <BottomNavigation activeRoute={route} />
+      <BottomNavigation activeRoute={route} onNewOperation={openQuickAdd} onSearch={openSearch} />
       {ready ? (
         <GlobalSearchDialog open={searchOpen} data={ready.data} onClose={closeSearch} />
       ) : null}

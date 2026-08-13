@@ -66,6 +66,8 @@ function AnalyticsContent({ value }: { value: AnalyticsData }) {
     <section className="analytics-grid">
       <article className="panel analytics-panel analytics-line-panel"><SectionTitle title={value.scope === "year" ? "Динамика по месяцам" : "Динамика по дням"} action={<LineChart size={18} />} /><FlowLineChart value={value} /></article>
       <article className="panel analytics-panel"><SectionTitle title="Вклад участников" action={<BarChart3 size={18} />} /><PeopleBars value={value} /></article>
+      <article className="panel analytics-panel"><SectionTitle title="Доходы по людям" action={<CircleDot size={18} />} /><PeopleDonut value={value} mode="income" /></article>
+      <article className="panel analytics-panel"><SectionTitle title="Расходы по людям" action={<CircleDot size={18} />} /><PeopleDonut value={value} mode="expense" /></article>
       <article className="panel analytics-panel"><SectionTitle title="Категории расходов" action={<CircleDot size={18} />} /><div className="analytics-pie-layout"><div className="analytics-pie" style={{ background: pie }}><span><strong>{value.categories.length}</strong><small>категорий</small></span></div><div className="pie-legend">{value.categories.slice(0, 7).map((category) => <div key={category.key}><span style={{ background: category.color }} /><strong>{category.name}</strong><small>{formatMoney(category.amountMinor, value.currency)}</small></div>)}</div></div></article>
       <article className="panel analytics-panel analytics-category-people"><SectionTitle title="Категории по участникам" /><div className="category-people-list">{value.categories.map((category) => <div className="category-people-row" key={category.key}><span className="category-preview" style={{ background: category.color }}><IconGlyph name={category.iconKey} size={17} /></span><strong>{category.name}</strong><div>{category.people.length ? category.people.map((person) => <span key={person.key}>{person.name}<b>{formatMoney(person.amountMinor, value.currency)}</b></span>) : <span>Нет данных</span>}</div><b>{formatMoney(category.amountMinor, value.currency)}</b></div>)}</div></article>
       <article className="panel analytics-panel analytics-counterparties"><SectionTitle title="Контрагенты и источники" action={<TrendingUp size={18} />} /><CounterpartyRanking value={value} /></article>
@@ -108,6 +110,25 @@ function operationWord(count: number): string {
 function PeopleBars({ value }: { value: AnalyticsData }) {
   const max = Math.max(1, ...value.people.flatMap((person) => [person.incomeMinor, person.expenseMinor]));
   return <div className="people-bars">{value.people.map((person) => <div className="person-bar-row" key={person.key}><span className="mini-avatar" style={{ background: person.accentColor }}>{person.avatarDataUrl ? <img src={person.avatarDataUrl} alt="" /> : person.name.slice(0, 1)}</span><strong>{person.name}</strong><div className="bar-pair"><span className="income-bar" style={{ "--bar": `${(person.incomeMinor / max) * 100}%` } as CSSProperties}><i /></span><span className="expense-bar" style={{ "--bar": `${(person.expenseMinor / max) * 100}%` } as CSSProperties}><i /></span></div><small><b>+{formatMoney(person.incomeMinor, value.currency)}</b><b>{formatMoney(person.expenseMinor, value.currency)}</b></small></div>)}</div>;
+}
+
+function PeopleDonut({ value, mode }: { value: AnalyticsData; mode: "income" | "expense" }) {
+  const rows = value.people
+    .map((person) => ({ ...person, amountMinor: mode === "income" ? person.incomeMinor : person.expenseMinor }))
+    .filter((person) => person.amountMinor > 0);
+  const total = rows.reduce((sum, person) => sum + person.amountMinor, 0);
+  let cursor = 0;
+  const gradient = rows.map((person) => {
+    const start = cursor;
+    cursor += (person.amountMinor / Math.max(1, total)) * 100;
+    return `${person.accentColor} ${start}% ${cursor}%`;
+  }).join(",");
+  return rows.length ? <div className="analytics-pie-layout people-donut-layout">
+    <div className="analytics-pie people-pie" style={{ background: `conic-gradient(${gradient})` }} aria-label={`${mode === "income" ? "Доходы" : "Расходы"} по участникам`}>
+      <span><strong>{formatMoney(total, value.currency)}</strong><small>всего</small></span>
+    </div>
+    <div className="pie-legend people-pie-legend">{rows.map((person) => <div key={person.key}><span style={{ background: person.accentColor }} /><strong>{person.name}</strong><small>{formatMoney(person.amountMinor, value.currency)} · {Math.round((person.amountMinor / total) * 100)}%</small></div>)}</div>
+  </div> : <p className="counterparty-empty">За выбранный период данных пока нет.</p>;
 }
 
 function FlowLineChart({ value }: { value: AnalyticsData }) {

@@ -24,6 +24,12 @@ export function OverviewPage({ data, source, theme, onThemeToggle, onNewOperatio
   const dailyAllowance = Math.max(1, Math.round(data.availableMoney.amountMinor / remainingDays));
   const paceShare = Math.min(100, Math.round((dailyPace / dailyAllowance) * 100));
   const monthEndLabel = new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "long" }).format(monthEnd);
+  const plannedIncome = data.plan?.incomeMinor ?? 0;
+  const plannedExpense = data.plan?.expenseMinor ?? 0;
+  const paymentTimeline = [
+    ...data.plannedPayments.map((item) => ({ id: `plan-${item.id}`, name: item.name, dueDate: item.dueDate })),
+    ...data.obligations.filter((item) => item.dueDate).map((item) => ({ id: `obligation-${item.id}`, name: item.name, dueDate: item.dueDate || "" })),
+  ].sort((left, right) => left.dueDate.localeCompare(right.dueDate));
 
   return (
     <main className="app-page" id="page-content" tabIndex={-1}>
@@ -52,7 +58,7 @@ export function OverviewPage({ data, source, theme, onThemeToggle, onNewOperatio
           </span>
           <div className="month-timeline" aria-label="Платежи до конца месяца">
             <span className="timeline-line" />
-            {data.obligations.filter((item) => item.dueDate).slice(0, 3).map((item, index) => (
+            {paymentTimeline.slice(0, 3).map((item, index) => (
               <span className={`timeline-event timeline-event-${index + 1}`} title={`${item.name}: ${formatShortDate(item.dueDate!)}`} key={item.id} />
             ))}
             <small>сегодня</small>
@@ -94,6 +100,14 @@ export function OverviewPage({ data, source, theme, onThemeToggle, onNewOperatio
         </div>
       </section>
 
+      <section className="panel plan-fact-card" aria-label="План и факт за выбранный период">
+        <SectionTitle title="План и факт" action={<a className="text-link" href={routeHref("plan")}>Настроить <ArrowRight size={15} aria-hidden="true" /></a>} />
+        <div className="plan-fact-grid">
+          <PlanFactRow label="Доход" actual={data.month.incomeMinor} planned={plannedIncome} currency={baseCurrency} tone="income" />
+          <PlanFactRow label="Расход" actual={data.month.expenseMinor} planned={plannedExpense} currency={baseCurrency} tone="expense" />
+        </div>
+      </section>
+
       <a className="obligation-summary" href={routeHref("obligations")}>
         <span className="obligation-symbol" aria-hidden="true"><Clock3 size={21} strokeWidth={1.8} /></span>
         <span>
@@ -114,4 +128,19 @@ export function OverviewPage({ data, source, theme, onThemeToggle, onNewOperatio
       </a>
     </main>
   );
+}
+
+function PlanFactRow({ label, actual, planned, currency, tone }: {
+  label: string;
+  actual: number;
+  planned: number;
+  currency: string;
+  tone: "income" | "expense";
+}) {
+  const share = planned > 0 ? Math.min(100, Math.round((actual / planned) * 100)) : 0;
+  return <div className={`plan-fact-row plan-fact-${tone}`}>
+    <div><strong>{label}</strong><span>Факт {formatMoney(actual, currency)}</span></div>
+    <div className="plan-fact-progress" aria-label={planned > 0 ? `${label}: факт ${formatMoney(actual, currency)}, план ${formatMoney(planned, currency)}` : `${label}: план не задан`}><i style={{ width: `${share}%` }} /><b /></div>
+    <small>{planned > 0 ? `План ${formatMoney(planned, currency)}` : "План не задан"}</small>
+  </div>;
 }

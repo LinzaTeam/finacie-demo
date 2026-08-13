@@ -18,6 +18,7 @@ const settingsSections = [
   { key: "support", label: "Поддержка", icon: Bug },
 ] as const;
 type SettingsSection = (typeof settingsSections)[number]["key"];
+type ProfileFeedback = { kind: "success" | "error"; message: string } | null;
 
 const bugStatusLabel: Record<BugReportStatus, string> = {
   new: "Новый",
@@ -35,6 +36,7 @@ export function SettingsPage({
   const [avatar, setAvatar] = useState<string | null>(profile?.avatarDataUrl ?? null);
   const [accent, setAccent] = useState(profile?.accentColor ?? palette[0]);
   const [saving, setSaving] = useState(false);
+  const [profileFeedback, setProfileFeedback] = useState<ProfileFeedback>(null);
 
   useEffect(() => {
     setName(profile?.name ?? activeUser);
@@ -44,15 +46,43 @@ export function SettingsPage({
 
   const submitProfile = async (event: FormEvent) => {
     event.preventDefault();
-    if (!profile || !name.trim() || !canWrite) return;
+    setProfileFeedback(null);
+    if (!profile) {
+      setProfileFeedback({ kind: "error", message: "Не удалось определить текущий профиль. Обновите страницу и попробуйте снова." });
+      return;
+    }
+    if (!name.trim()) {
+      setProfileFeedback({ kind: "error", message: "Укажите имя в приложении." });
+      return;
+    }
+    if (!canWrite) {
+      setProfileFeedback({
+        kind: "error",
+        message: "Сессия открыта только для просмотра. Войдите через Telegram заново; если сообщение останется, на сервере нужно включить сохранение.",
+      });
+      return;
+    }
     setSaving(true);
     try {
+      const updatedData = {
+        ...data,
+        people: data.people.map((person) => person.key === profile.key
+          ? { ...person, name: name.trim(), avatarDataUrl: avatar, accentColor: accent }
+          : person),
+      };
       if (source === "demo") {
-        onDataChange?.({ ...data, people: data.people.map((person) => person.key === profile.key ? { ...person, name: name.trim(), avatarDataUrl: avatar, accentColor: accent } : person) });
+        onDataChange?.(updatedData);
       } else {
         await saveProfile(profile.key, { display_name: name.trim(), avatar_data_url: avatar, accent_color: accent });
+        onDataChange?.(updatedData);
       }
-      if (source === "api") onRefresh?.();
+      setProfileFeedback({ kind: "success", message: "Профиль сохранён." });
+    } catch (reason) {
+      const detail = reason instanceof Error ? reason.message : "Неизвестная ошибка";
+      setProfileFeedback({
+        kind: "error",
+        message: `Не удалось сохранить профиль. ${detail}`,
+      });
     } finally {
       setSaving(false);
     }
@@ -110,13 +140,25 @@ export function SettingsPage({
             <div className="profile-editor">
               <span className="profile-avatar profile-avatar-large" style={{ background: accent }}>{avatar ? <img src={avatar} alt="" /> : name.slice(0, 1)}</span>
               <div><strong>Аватар участника</strong><small>PNG, JPEG или WebP до 512 КБ</small><label className="quiet-button"><Upload size={15} />Загрузить<input className="sr-only" type="file" accept="image/png,image/jpeg,image/webp" onChange={(event) => {
-                const file = event.target.files?.[0]; if (!file || file.size > 512 * 1024) return;
-                const reader = new FileReader(); reader.onload = () => setAvatar(String(reader.result)); reader.readAsDataURL(file);
+                const file = event.target.files?.[0];
+                if (!file) return;
+                if (file.size > 512 * 1024) {
+                  setProfileFeedback({ kind: "error", message: "Аватар больше 512 КБ. Выберите файл меньшего размера." });
+                  return;
+                }
+                const reader = new FileReader();
+                reader.onload = () => { setAvatar(String(reader.result)); setProfileFeedback(null); };
+                reader.readAsDataURL(file);
               }} /></label></div>
             </div>
-            <label className="settings-field"><span>Имя в приложении</span><input value={name} onChange={(event) => setName(event.target.value)} /></label>
-            <fieldset className="color-palette"><legend>Цвет профиля</legend>{palette.map((value) => <button className={accent === value ? "palette-active" : ""} style={{ background: value }} type="button" onClick={() => setAccent(value)} aria-label={`Цвет ${value}`} key={value} />)}</fieldset>
-            <button className="primary-button" type="submit" disabled={saving || !canWrite}><Save size={16} />{saving ? "Сохраняю" : "Сохранить профиль"}</button>
+            <label className="settings-field"><span>Имя в приложении</span><input value={name} onChange={(event) => { setName(event.target.value); setProfileFeedback(null); }} /></label>
+            <fieldset className="color-palette"><legend>Цвет профиля</legend>{palette.map((value) => <button className={accent === value ? "palette-active" : ""} style={{ background: value }} type="button" onClick={() => { setAccent(value); setProfileFeedback(null); }} aria-label={`Цвет ${value}`} key={value} />)}</fieldset>
+            {!canWrite ? <p className="profile-save-hint">Сейчас доступен только просмотр. Нажмите «Сохранить профиль», чтобы увидеть, как восстановить доступ.</p> : null}
+            {profileFeedback ? <p className={`profile-save-feedback profile-save-feedback-${profileFeedback.kind}`} role={profileFeedback.kind === "error" ? "alert" : "status"}>
+              {profileFeedback.kind === "success" ? <CheckCircle2 size={16} aria-hidden="true" /> : null}
+              <span>{profileFeedback.message}</span>
+            </p> : null}
+            <button className="primary-button" type="submit" disabled={saving || !profile || !name.trim()}><Save size={16} />{saving ? "Сохраняю" : "Сохранить профиль"}</button>
           </form>
           <ProfileRulesPanel source={source} timezone={data.meta.timezone} theme={theme} onThemeToggle={onThemeToggle} />
         </section>

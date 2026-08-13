@@ -4212,7 +4212,30 @@ html[data-theme="dark"] .login-feature-grid article { border-color: var(--line);
 .profile-editor small { color: var(--text-secondary); font-size: 9px; }
 .profile-editor .quiet-button { width: max-content; margin-top: 7px; }
 .profile-avatar-large { width: 72px; height: 72px; flex: 0 0 72px; font-size: 24px; }
-.profile-settings-card > .primary-button { margin-top: 20px; }
+.profile-save-hint {
+  max-width: 58ch;
+  margin: 16px 0 0;
+  color: var(--text-secondary);
+  font-size: 10px;
+  line-height: 1.5;
+}
+.profile-save-feedback {
+  display: flex;
+  width: fit-content;
+  max-width: 100%;
+  margin: 16px 0 0;
+  padding: 10px 12px;
+  align-items: flex-start;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  font-size: 10px;
+  line-height: 1.45;
+}
+.profile-save-feedback svg { flex: 0 0 auto; margin-top: 1px; }
+.profile-save-feedback-success { color: var(--positive); background: var(--positive-soft); }
+.profile-save-feedback-error { color: var(--negative); background: var(--negative-soft); }
+.profile-settings-card > .primary-button { margin-top: 16px; }
 .category-settings-panel { margin-top: 18px; padding: 18px; }
 .section-caption { color: var(--text-secondary); font-size: 9px; }
 .category-editor-grid { display: grid; margin-top: 10px; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }

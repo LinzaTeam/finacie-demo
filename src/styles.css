@@ -1586,8 +1586,8 @@ html[data-theme="dark"] .segmented-control .segment-active {
   box-shadow: var(--shadow-panel);
 }
 
-.goal-card-2 { background: color-mix(in srgb, var(--lavender) 24%, var(--surface-elevated)); }
-.goal-card-3 { background: color-mix(in srgb, var(--lemon) 18%, var(--surface-elevated)); }
+.goal-card-2 { background: color-mix(in srgb, var(--lavender) 10%, var(--surface-elevated)); }
+.goal-card-3 { background: color-mix(in srgb, var(--lemon) 8%, var(--surface-elevated)); }
 
 .goal-create-card {
   justify-content: center;
@@ -3821,6 +3821,7 @@ html[data-theme="dark"] .login-feature-grid article { border-color: var(--line);
 .goal-card:not(.goal-create-card) {
   min-height: 408px;
   padding: 0;
+  overflow: hidden;
   justify-content: stretch;
   cursor: default;
 }
@@ -3834,6 +3835,7 @@ html[data-theme="dark"] .login-feature-grid article { border-color: var(--line);
   align-items: center;
   flex-direction: column;
   border: 0;
+  border-radius: inherit;
   color: var(--text);
   text-align: center;
   background: transparent;
@@ -3850,21 +3852,34 @@ html[data-theme="dark"] .login-feature-grid article { border-color: var(--line);
 .goal-pace { display: flex; flex-wrap: wrap; justify-content: center; gap: 5px; }
 .goal-pace .goal-deadline { margin-top: 8px; }
 
-.goal-topup-button {
+.goal-card:not(.goal-create-card) .goal-topup-button {
   display: inline-flex;
-  width: calc(100% - 52px);
+  width: calc(100% - 40px);
   min-height: 44px;
-  margin: 0 26px 22px;
+  margin: 0 20px 20px;
   align-items: center;
   justify-content: center;
   gap: 7px;
-  border: 1px solid transparent;
+  border: 1px solid color-mix(in srgb, var(--primary) 35%, transparent);
   border-radius: var(--radius-control);
   color: var(--ivory);
   background: var(--primary);
   cursor: pointer;
   font-size: 11px;
   font-weight: 720;
+}
+
+/* Goal colour is a progress cue, not a competing card background. */
+.goal-card:not(.goal-create-card) {
+  background: var(--surface-elevated);
+}
+
+.goal-card-2:not(.goal-create-card) {
+  background: color-mix(in srgb, var(--lavender) 8%, var(--surface-elevated));
+}
+
+.goal-card-3:not(.goal-create-card) {
+  background: color-mix(in srgb, var(--lemon) 6%, var(--surface-elevated));
 }
 
 .goal-topup-button:disabled { cursor: not-allowed; opacity: .5; }

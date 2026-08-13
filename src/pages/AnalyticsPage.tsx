@@ -1,6 +1,6 @@
 import type { CSSProperties } from "react";
 import { BarChart3, CircleDot, LineChart, TrendingUp } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import { getAnalytics } from "../api/analytics";
 import { IconGlyph } from "../components/IconGlyph";
 import { DataNotices, PageHeader, SectionTitle } from "../components/PageChrome";
@@ -12,7 +12,7 @@ export function AnalyticsPage({
   data, source, theme, onThemeToggle, onNewOperation, onSearch, activeUser,
   selectedPeriod, onPeriodChange,
 }: FinancePageProps) {
-  const [scope, setScope] = useState<"month" | "year">("month");
+  const [scope, setScope] = useState<AnalyticsData["scope"]>("month");
   const [person, setPerson] = useState<string | null>(null);
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
@@ -37,6 +37,7 @@ export function AnalyticsPage({
       <div className="segmented-control" aria-label="Глубина аналитики">
         <button className={scope === "month" ? "segment-active" : ""} type="button" onClick={() => setScope("month")}>По дням</button>
         <button className={scope === "year" ? "segment-active" : ""} type="button" onClick={() => setScope("year")}>По месяцам</button>
+        <button className={scope === "years" ? "segment-active" : ""} type="button" onClick={() => setScope("years")}>По годам</button>
       </div>
       <label className="person-filter"><span>Участник</span><select className="person-filter-select" value={person ?? "all"} onChange={(event) => setPerson(event.target.value === "all" ? null : event.target.value)}><option value="all">Все вместе</option>{data.people.map((item) => <option value={item.key} key={item.key}>{item.name}</option>)}</select></label>
     </section>
@@ -47,6 +48,11 @@ export function AnalyticsPage({
 }
 
 function AnalyticsContent({ value }: { value: AnalyticsData }) {
+  const lineTitle = {
+    month: "Динамика по дням",
+    year: "Динамика по месяцам",
+    years: "Динамика по годам",
+  }[value.scope];
   const pie = useMemo(() => {
     const total = value.categories.reduce((sum, item) => sum + item.amountMinor, 0) || 1;
     let cursor = 0;
@@ -64,7 +70,7 @@ function AnalyticsContent({ value }: { value: AnalyticsData }) {
       <div><span>Результат</span><strong className={value.totals.netMinor >= 0 ? "amount-income" : "amount-negative"}>{formatSignedMoney(value.totals.netMinor, value.currency)}</strong></div>
     </section>
     <section className="analytics-grid">
-      <article className="panel analytics-panel analytics-line-panel"><SectionTitle title={value.scope === "year" ? "Динамика по месяцам" : "Динамика по дням"} action={<LineChart size={18} />} /><FlowLineChart value={value} /></article>
+      <article className="panel analytics-panel analytics-line-panel"><SectionTitle title={lineTitle} action={<LineChart size={18} />} /><FlowLineChart value={value} /></article>
       <article className="panel analytics-panel"><SectionTitle title="Вклад участников" action={<BarChart3 size={18} />} /><PeopleBars value={value} /></article>
       <article className="panel analytics-panel"><SectionTitle title="Доходы по людям" action={<CircleDot size={18} />} /><PeopleDonut value={value} mode="income" /></article>
       <article className="panel analytics-panel"><SectionTitle title="Расходы по людям" action={<CircleDot size={18} />} /><PeopleDonut value={value} mode="expense" /></article>
@@ -131,14 +137,117 @@ function PeopleDonut({ value, mode }: { value: AnalyticsData; mode: "income" | "
   </div> : <p className="counterparty-empty">За выбранный период данных пока нет.</p>;
 }
 
-function FlowLineChart({ value }: { value: AnalyticsData }) {
-  const width = 720; const height = 230; const pad = 18;
+function formatFlowBucket(bucket: string, scope: AnalyticsData["scope"]): string {
+  if (scope === "years") return `${bucket} год`;
+  if (scope === "year") {
+    return new Intl.DateTimeFormat("ru-RU", { month: "long", year: "numeric" })
+      .format(new Date(`${bucket}-01T12:00:00+03:00`));
+  }
+  return new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "long", year: "numeric" })
+    .format(new Date(`${bucket}T12:00:00+03:00`));
+}
+
+function formatFlowAxisBucket(bucket: string, scope: AnalyticsData["scope"]): string {
+  if (scope === "years") return bucket;
+  if (scope === "year") {
+    return new Intl.DateTimeFormat("ru-RU", { month: "short" })
+      .format(new Date(`${bucket}-01T12:00:00+03:00`))
+      .replace(".", "");
+  }
+  return String(Number(bucket.slice(-2)));
+}
+
+export function FlowLineChart({ value }: { value: AnalyticsData }) {
+  const [activeIndex, setActiveIndex] = useState<number | null>(null);
+  const titleId = useId();
+  const descriptionId = useId();
+  const width = 720; const height = 230; const padX = 18; const padTop = 18; const padBottom = 30;
   const points = value.series.length ? value.series : [{ bucket: "", incomeMinor: 0, expenseMinor: 0 }];
   const max = Math.max(1, ...points.flatMap((point) => [point.incomeMinor, point.expenseMinor]));
+  const plotWidth = width - padX * 2;
+  const plotHeight = height - padTop - padBottom;
+  const toX = (index: number) => padX + (index / Math.max(1, points.length - 1)) * plotWidth;
+  const toY = (amountMinor: number) => padTop + ((max - amountMinor) / max) * plotHeight;
   const line = (key: "incomeMinor" | "expenseMinor") => points.map((point, index) => {
-    const x = pad + (index / Math.max(1, points.length - 1)) * (width - pad * 2);
-    const y = height - pad - (point[key] / max) * (height - pad * 2);
-    return `${x},${y}`;
+    return `${toX(index)},${toY(point[key])}`;
   }).join(" ");
-  return <div className="flow-line-chart"><svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Линейная диаграмма доходов и расходов"><g className="chart-grid-lines">{[0, 1, 2, 3, 4].map((row) => <line x1={pad} y1={pad + row * ((height - pad * 2) / 4)} x2={width - pad} y2={pad + row * ((height - pad * 2) / 4)} key={row} />)}</g><polyline className="income-line" points={line("incomeMinor")} /><polyline className="expense-line" points={line("expenseMinor")} /></svg><div className="chart-legend"><span><i className="income-dot" />Доход</span><span><i className="expense-dot" />Расход</span></div></div>;
+  const labelIndexes = Array.from(new Set([0, Math.round((points.length - 1) / 2), points.length - 1]));
+  const activePoint = activeIndex === null ? null : points[activeIndex];
+  const activeX = activeIndex === null ? 0 : toX(activeIndex);
+  const activeIncomeY = activePoint === null ? 0 : toY(activePoint.incomeMinor);
+  const activeExpenseY = activePoint === null ? 0 : toY(activePoint.expenseMinor);
+  const activeY = Math.min(activeIncomeY, activeExpenseY);
+  const activeDate = activePoint === null ? "" : formatFlowBucket(activePoint.bucket, value.scope);
+  const activeChange = activePoint === null ? 0 : activePoint.incomeMinor - activePoint.expenseMinor;
+  const activeLabel = activePoint === null ? "" : `${activeDate}: доход ${formatSignedMoney(activePoint.incomeMinor, value.currency)}, расход ${formatSignedMoney(-activePoint.expenseMinor, value.currency)}, изменение ${formatSignedMoney(activeChange, value.currency)}.`;
+  const tooltipStyle = activePoint === null ? undefined : ({
+    "--flow-tooltip-x": `${(activeX / width) * 100}%`,
+    "--flow-tooltip-y": `${(activeY / height) * 100}%`,
+  } as CSSProperties);
+
+  const selectNearestPoint = (clientX: number, bounds: DOMRect) => {
+    if (bounds.width <= 0) return;
+    const svgX = ((clientX - bounds.left) / bounds.width) * width;
+    const ratio = Math.min(1, Math.max(0, (svgX - padX) / plotWidth));
+    setActiveIndex(Math.round(ratio * Math.max(points.length - 1, 0)));
+  };
+
+  return <figure className="flow-line-chart">
+    <svg
+      viewBox={`0 0 ${width} ${height}`}
+      preserveAspectRatio="none"
+      role="img"
+      aria-labelledby={`${titleId} ${descriptionId}`}
+      tabIndex={0}
+      onBlur={() => setActiveIndex(null)}
+      onFocus={() => setActiveIndex(points.length - 1)}
+      onKeyDown={(event) => {
+        if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+        event.preventDefault();
+        setActiveIndex((index) => {
+          if (event.key === "Home") return 0;
+          if (event.key === "End") return points.length - 1;
+          const currentIndex = index ?? points.length - 1;
+          return event.key === "ArrowLeft"
+            ? Math.max(0, currentIndex - 1)
+            : Math.min(points.length - 1, currentIndex + 1);
+        });
+      }}
+      onPointerDown={(event) => selectNearestPoint(event.clientX, event.currentTarget.getBoundingClientRect())}
+      onPointerLeave={() => setActiveIndex(null)}
+      onPointerMove={(event) => selectNearestPoint(event.clientX, event.currentTarget.getBoundingClientRect())}
+    >
+      <title id={titleId}>Доходы и расходы {value.scope === "month" ? "по дням" : value.scope === "year" ? "по месяцам" : "по годам"}</title>
+      <desc id={descriptionId}>Наведите указатель на график или используйте стрелки влево и вправо, чтобы посмотреть доход, расход и итоговое изменение за период.</desc>
+      <g className="chart-grid-lines">{[0, 1, 2, 3, 4].map((row) => <line x1={padX} y1={padTop + row * (plotHeight / 4)} x2={width - padX} y2={padTop + row * (plotHeight / 4)} key={row} />)}</g>
+      <polyline className="income-line" points={line("incomeMinor")} />
+      <polyline className="expense-line" points={line("expenseMinor")} />
+      {points.length === 1 ? <>
+        <circle className="flow-chart-single-point flow-chart-income-point" cx={toX(0)} cy={toY(points[0].incomeMinor)} r="3.5" />
+        <circle className="flow-chart-single-point flow-chart-expense-point" cx={toX(0)} cy={toY(points[0].expenseMinor)} r="3.5" />
+      </> : null}
+      {activePoint ? <>
+        <line className="flow-chart-active-line" x1={activeX} x2={activeX} y1={padTop} y2={height - padBottom} />
+        <circle className="flow-chart-active-point flow-chart-income-point" cx={activeX} cy={activeIncomeY} r="4.4" />
+        <circle className="flow-chart-active-point flow-chart-expense-point" cx={activeX} cy={activeExpenseY} r="4.4" />
+      </> : null}
+      {labelIndexes.map((index) => <text className="flow-chart-x-label" key={`${points[index].bucket}-${index}`} x={toX(index)} y={height - 7} textAnchor={index === 0 ? "start" : index === points.length - 1 ? "end" : "middle"}>{formatFlowAxisBucket(points[index].bucket, value.scope)}</text>)}
+    </svg>
+    {activePoint ? <div
+      className="flow-chart-tooltip"
+      data-align={activeIndex === 0 ? "start" : activeIndex === points.length - 1 ? "end" : "center"}
+      data-placement={activeY < padTop + 70 ? "below" : "above"}
+      style={tooltipStyle}
+      aria-hidden="true"
+    >
+      <time dateTime={activePoint.bucket}>{activeDate}</time>
+      <dl>
+        <div><dt>Доход</dt><dd className={activePoint.incomeMinor > 0 ? "positive" : "neutral"}>{formatSignedMoney(activePoint.incomeMinor, value.currency)}</dd></div>
+        <div><dt>Расход</dt><dd className={activePoint.expenseMinor > 0 ? "negative" : "neutral"}>{formatSignedMoney(-activePoint.expenseMinor, value.currency)}</dd></div>
+        <div className="flow-chart-tooltip-net"><dt>Изменение</dt><dd className={activeChange > 0 ? "positive" : activeChange < 0 ? "negative" : "neutral"}>{formatSignedMoney(activeChange, value.currency)}</dd></div>
+      </dl>
+    </div> : null}
+    <span className="sr-only" aria-live="polite">{activeLabel}</span>
+    <figcaption className="chart-legend"><span><i className="income-dot" />Доход</span><span><i className="expense-dot" />Расход</span></figcaption>
+  </figure>;
 }

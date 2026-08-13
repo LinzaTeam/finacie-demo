@@ -3,7 +3,7 @@ import type { AnalyticsData, DashboardData } from "../types";
 type RawAnalytics = {
   period_start: string;
   period_end: string;
-  scope: "month" | "year";
+  scope: AnalyticsData["scope"];
   currency: string;
   partial: boolean;
   totals: { income_cents: number; expense_cents: number; net_cents: number };
@@ -89,15 +89,39 @@ function normalize(raw: RawAnalytics): AnalyticsData {
 function demoAnalytics(
   data: DashboardData,
   period: string,
-  scope: "month" | "year",
+  scope: AnalyticsData["scope"],
   personKey: string | null,
 ): AnalyticsData {
-  const prefix = scope === "year" ? period.slice(0, 4) : period;
+  const selectedYear = Number(period.slice(0, 4));
   const transactions = data.transactions.filter((transaction) => (
-    transaction.occurredAt.startsWith(prefix) &&
+    (scope === "month"
+      ? transaction.occurredAt.startsWith(period)
+      : scope === "year"
+        ? transaction.occurredAt.startsWith(String(selectedYear))
+        : Number(transaction.occurredAt.slice(0, 4)) <= selectedYear) &&
     (!personKey || transaction.subjectKey === personKey)
   ));
   const buckets = new Map<string, { bucket: string; incomeMinor: number; expenseMinor: number }>();
+  if (scope === "month") {
+    const [year, month] = period.split("-").map(Number);
+    const dayCount = new Date(year, month, 0).getDate();
+    for (let day = 1; day <= dayCount; day += 1) {
+      const bucket = `${period}-${String(day).padStart(2, "0")}`;
+      buckets.set(bucket, { bucket, incomeMinor: 0, expenseMinor: 0 });
+    }
+  } else if (scope === "year") {
+    for (let month = 1; month <= 12; month += 1) {
+      const bucket = `${selectedYear}-${String(month).padStart(2, "0")}`;
+      buckets.set(bucket, { bucket, incomeMinor: 0, expenseMinor: 0 });
+    }
+  } else {
+    const years = transactions.map((transaction) => Number(transaction.occurredAt.slice(0, 4)));
+    const firstYear = Math.min(selectedYear, ...years.filter(Number.isFinite));
+    for (let year = firstYear; year <= selectedYear; year += 1) {
+      const bucket = String(year);
+      buckets.set(bucket, { bucket, incomeMinor: 0, expenseMinor: 0 });
+    }
+  }
   const personTotals = new Map(data.people.map((person) => [person.key, {
     ...person,
     incomeMinor: 0,
@@ -106,9 +130,11 @@ function demoAnalytics(
   const categories = new Map<string, AnalyticsData["categories"][number]>();
   const counterparties = new Map<string, AnalyticsData["counterparties"][number]>();
   transactions.forEach((transaction) => {
-    const bucket = scope === "year"
-      ? transaction.occurredAt.slice(0, 7)
-      : transaction.occurredAt.slice(0, 10);
+    const bucket = scope === "month"
+      ? transaction.occurredAt.slice(0, 10)
+      : scope === "year"
+        ? transaction.occurredAt.slice(0, 7)
+        : transaction.occurredAt.slice(0, 4);
     const point = buckets.get(bucket) ?? { bucket, incomeMinor: 0, expenseMinor: 0 };
     const person = personTotals.get(transaction.subjectKey || "") ?? null;
     if (transaction.counterpartyName) {
@@ -160,9 +186,18 @@ function demoAnalytics(
   const visiblePeople = [...personTotals.values()].filter((person) => !personKey || person.key === personKey);
   const incomeMinor = visiblePeople.reduce((sum, person) => sum + person.incomeMinor, 0);
   const expenseMinor = visiblePeople.reduce((sum, person) => sum + person.expenseMinor, 0);
+  const firstBucket = buckets.keys().next().value as string | undefined;
+  const periodStart = scope === "month"
+    ? `${period}-01`
+    : scope === "year"
+      ? `${selectedYear}-01-01`
+      : `${firstBucket ?? selectedYear}-01-01`;
+  const periodEnd = scope === "month"
+    ? `${period}-${String(new Date(Number(period.slice(0, 4)), Number(period.slice(5, 7)), 0).getDate()).padStart(2, "0")}`
+    : `${selectedYear}-12-31`;
   return {
-    periodStart: `${prefix}${scope === "year" ? "-01-01" : "-01"}`,
-    periodEnd: data.meta.generatedAt.slice(0, 10),
+    periodStart,
+    periodEnd,
     scope,
     currency: data.availableMoney.currency,
     partial: false,
@@ -178,7 +213,7 @@ export async function getAnalytics(
   data: DashboardData,
   source: "api" | "demo",
   period: string,
-  scope: "month" | "year",
+  scope: AnalyticsData["scope"],
   personKey: string | null,
   signal?: AbortSignal,
 ): Promise<AnalyticsData> {

@@ -4281,12 +4281,54 @@ html[data-theme="dark"] .login-feature-grid article { border-color: var(--line);
 .analytics-panel { min-width: 0; padding: 18px; }
 .analytics-category-people { grid-column: 1 / -1; }
 .analytics-counterparties { grid-column: 1 / -1; }
+.flow-line-chart { position: relative; margin: 0; }
 .flow-line-chart svg { display: block; width: 100%; min-height: 220px; overflow: visible; }
+.flow-line-chart svg:focus-visible { outline: 2px solid var(--primary); outline-offset: 5px; border-radius: 8px; }
 .chart-grid-lines line { stroke: var(--line); stroke-width: 1; }
 .income-line,
 .expense-line { fill: none; stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
 .income-line { stroke: var(--positive); }
 .expense-line { stroke: var(--sky); }
+.flow-chart-active-line { stroke: var(--primary); stroke-dasharray: 2 3; stroke-width: 1; opacity: .72; }
+.flow-chart-active-point { fill: var(--surface-elevated); stroke-width: 2.4; vector-effect: non-scaling-stroke; }
+.flow-chart-single-point { fill: var(--surface-elevated); stroke-width: 2; vector-effect: non-scaling-stroke; }
+.flow-chart-income-point { stroke: var(--positive); }
+.flow-chart-expense-point { stroke: var(--sky); }
+.flow-chart-x-label { fill: var(--text-secondary); font-size: 9px; font-weight: 650; }
+.flow-chart-tooltip {
+  position: absolute;
+  z-index: 20;
+  top: var(--flow-tooltip-y);
+  left: var(--flow-tooltip-x);
+  display: grid;
+  min-width: 168px;
+  max-width: min(210px, calc(100% - 12px));
+  padding: 10px 11px;
+  gap: 7px;
+  border-radius: 10px;
+  color: var(--ivory);
+  background: var(--charcoal);
+  box-shadow: 0 4px 8px rgb(19 20 23 / .24);
+  pointer-events: none;
+  transform: translate(-50%, calc(-100% - 9px));
+}
+.flow-chart-tooltip[data-align="start"] { transform: translate(0, calc(-100% - 9px)); }
+.flow-chart-tooltip[data-align="end"] { transform: translate(-100%, calc(-100% - 9px)); }
+.flow-chart-tooltip[data-placement="below"] { transform: translate(-50%, 9px); }
+.flow-chart-tooltip[data-placement="below"][data-align="start"] { transform: translate(0, 9px); }
+.flow-chart-tooltip[data-placement="below"][data-align="end"] { transform: translate(-100%, 9px); }
+.flow-chart-tooltip time { color: rgb(255 253 245 / .72); font-size: 9px; font-weight: 590; }
+.flow-chart-tooltip dl { display: grid; margin: 0; gap: 4px; }
+.flow-chart-tooltip dl > div { display: flex; justify-content: space-between; gap: 14px; }
+.flow-chart-tooltip dt,
+.flow-chart-tooltip dd { margin: 0; font-size: 9px; }
+.flow-chart-tooltip dt { color: rgb(255 253 245 / .72); }
+.flow-chart-tooltip dd { font-weight: 720; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.flow-chart-tooltip-net { margin-top: 2px; padding-top: 5px; border-top: 1px solid rgb(255 253 245 / .16); }
+.flow-chart-tooltip .positive { color: var(--lemon); }
+.flow-chart-tooltip .negative { color: #ffafb5; }
+.flow-chart-tooltip .neutral { color: rgb(255 253 245 / .72); }
+html[data-theme="dark"] .flow-chart-tooltip { background: #202126; box-shadow: 0 4px 8px rgb(8 9 11 / .42); }
 .chart-legend { display: flex; margin-top: 4px; gap: 14px; color: var(--text-secondary); font-size: 9px; }
 .chart-legend span { display: inline-flex; align-items: center; gap: 5px; }
 .chart-legend i { width: 8px; height: 8px; border-radius: 50%; }

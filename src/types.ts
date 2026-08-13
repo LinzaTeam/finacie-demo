@@ -212,7 +212,7 @@ export function isDashboardData(value: unknown): value is DashboardData {
 export type AnalyticsData = {
   periodStart: string;
   periodEnd: string;
-  scope: "month" | "year";
+  scope: "month" | "year" | "years";
   currency: CurrencyCode;
   partial: boolean;
   totals: { incomeMinor: number; expenseMinor: number; netMinor: number };

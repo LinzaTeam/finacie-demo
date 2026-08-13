@@ -1,7 +1,8 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { demoDashboard } from "../data/demo";
-import { AnalyticsPage } from "./AnalyticsPage";
+import type { AnalyticsData } from "../types";
+import { AnalyticsPage, FlowLineChart } from "./AnalyticsPage";
 
 describe("analytics page", () => {
   it("shows household totals and supports participant and year filters", async () => {
@@ -26,5 +27,39 @@ describe("analytics page", () => {
       expect(screen.getByText("Динамика по месяцам")).toBeInTheDocument();
       expect(screen.getAllByText("Участник 2").length).toBeGreaterThan(1);
     });
+    fireEvent.click(screen.getByRole("button", { name: "По годам" }));
+    expect(await screen.findByText("Динамика по годам")).toBeInTheDocument();
+  });
+
+  it("shows the selected period and signed change on hover or keyboard focus", () => {
+    const value: AnalyticsData = {
+      periodStart: "2026-08-12",
+      periodEnd: "2026-08-13",
+      scope: "month",
+      currency: "RUB",
+      partial: false,
+      totals: { incomeMinor: 250_000, expenseMinor: 200_000, netMinor: 50_000 },
+      people: [],
+      categories: [],
+      counterparties: [],
+      series: [
+        { bucket: "2026-08-12", incomeMinor: 150_000, expenseMinor: 0 },
+        { bucket: "2026-08-13", incomeMinor: 100_000, expenseMinor: 200_000 },
+      ],
+    };
+    const { container } = render(<FlowLineChart value={value} />);
+    const chart = screen.getByRole("img", { name: /Доходы и расходы по дням/ });
+
+    fireEvent.focus(chart);
+    let tooltip = container.querySelector(".flow-chart-tooltip");
+    expect(tooltip).not.toBeNull();
+    expect(within(tooltip as HTMLElement).getByText(/13 августа 2026/)).toBeInTheDocument();
+    expect(within(tooltip as HTMLElement).getByText("−1 000 ₽")).toHaveClass("negative");
+
+    fireEvent.keyDown(chart, { key: "ArrowLeft" });
+    tooltip = container.querySelector(".flow-chart-tooltip");
+    expect(within(tooltip as HTMLElement).getByText(/12 августа 2026/)).toBeInTheDocument();
+    expect(tooltip?.querySelector(".flow-chart-tooltip-net dd")).toHaveTextContent("+1 500 ₽");
+    expect(tooltip?.querySelector(".flow-chart-tooltip-net dd")).toHaveClass("positive");
   });
 });
